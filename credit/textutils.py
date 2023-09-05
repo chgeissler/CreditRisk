@@ -1,7 +1,8 @@
+from typing import Optional
 from unidecode import unidecode
 
 
-def remove_accents(text: str) -> str:
+def remove_accents(text: Optional[str]) -> Optional[str]:
     """
     Remove accents from text
     :param
@@ -15,7 +16,7 @@ def remove_accents(text: str) -> str:
         return unidecode(text)
 
 
-def compactify(text: str) -> str:
+def compactify(text: Optional[str]) -> Optional[str]:
     """
     Remove spaces and newlines from text
     :param
@@ -29,7 +30,7 @@ def compactify(text: str) -> str:
         return text.replace(" ", "").replace("\n", "")
 
 
-def normalize(text: str) -> str:
+def normalize(text: Optional[str]) -> Optional[str]:
     """
     Remove spaces and newlines from text
     :param
