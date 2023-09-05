@@ -6,9 +6,9 @@ def remove_accents(text: Optional[str]) -> Optional[str]:
     """
     Remove accents from text
     :param
-        text: str to remove accents from
+        text: str, string to remove accents from
     :return:
-        str without accents
+        text without accents
     """
     if text is None:
         return None
