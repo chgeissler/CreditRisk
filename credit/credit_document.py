@@ -1,5 +1,6 @@
 from PyPDF2 import PdfReader, PageObject
 from typing import List, Dict, Tuple, Optional
+import textutils as tu
 
 
 class CreditDocument(object):
@@ -17,25 +18,28 @@ class CreditDocument(object):
                          page_number: int) -> Optional[Tuple[str, int]]:
         page = self._reader.pages[page_number]
         text = page.extract_text()
-        if tag in text:
-            return tag, page_number
-        else:
-            return None
+        tag_position = tu.normalize(text).find(tu.normalize(tag))
+        if tag_position >= 0:
+            return tag, page_number, tag_position
 
-    def find_tag_in_document(self, tag: str) -> Optional[Tuple[str, int]]:
+    def find_tag_in_document(self, tag: str) -> Optional[Tuple[str, int, int]]:
         for page_number, page in enumerate(self._reader.pages):
             text = page.extract_text()
-            if tag in text:
-                return tag, page_number
+            tag_position = tu.normalize(text).find(tu.normalize(tag))
+            if tag_position >= 0:
+                return tag, page_number, tag_position
         return None
+
 
 class DocumentBlock(object):
 
     def __init__(self,
+                 document: CreditDocument,
                  starttaglist: List[str] = None,
                  endtaglist: List[str] = None,
                  expected_start_page: int = None,
                  expected_end_page: int = None):
+        self._document = document
         self._starttaglist = starttaglist
         self._endtaglist = endtaglist
         self._expected_start_page = expected_start_page
@@ -116,7 +120,7 @@ class TurnoverRatiosBlock(DocumentBlock):
 
     def __init__(self):
         super().__init__(starttaglist=["Ratios de rotation"],
-                         endtaglist=["Analyse structurelle"],
+                         endtaglist=["Analyse des postes d'achat"],
                          expected_start_page=0,
                          expected_end_page=0)
 
