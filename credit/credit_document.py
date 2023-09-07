@@ -1,6 +1,7 @@
 from PyPDF2 import PdfReader, PageObject
 from typing import List, Dict, Tuple, Optional
 import credit.textutils as tu
+import camelot
 
 
 class CreditDocument(object):
@@ -50,12 +51,14 @@ class CreditDocument(object):
         :param
             page_number: int, page number to search in
         :return:
-            tuple of tag and page number if found, None otherwise
+            tuple of [matching tag, page number, position] if found, None otherwise
         """
         page = self._reader.pages[page_number]
         text = page.extract_text()
-        tag_position = tu.normalize(text).find(tu.normalize(tag))
-        if tag_position >= 0:
+        tag_position_cp = tu.normalize(text).find(tu.normalize(tag))
+
+        if tag_position_cp >= 0:
+            tag_position = tu.remove_accents()
             return tag, page_number, tag_position
 
     def find_tag_in_document(self, tag: str) -> Optional[Tuple[str, int, int]]:
