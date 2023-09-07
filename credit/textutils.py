@@ -30,15 +30,18 @@ def compactify(text: Optional[str]) -> Optional[str]:
         return text.replace(" ", "").replace("\n", "")
 
 
-def normalize(text: Optional[str]) -> Optional[str]:
+def normalize(text: Optional[str],
+              compactform=False) -> Optional[str]:
     """
     Remove spaces and newlines from text
-    :param
-        text: str to remove spaces and newlines from
-    :return:
-        str without spaces and newlines
+    :param compactform: boolean; if True, compactify text
+    :param text: str to remove spaces and newlines from
+    :return: str without spaces and newlines
     """
     if text is None:
         return None
     else:
-        return compactify(remove_accents(text)).upper()
+        res = remove_accents(text).upper()
+        if compactform:
+            res = compactify(res)
+        return res

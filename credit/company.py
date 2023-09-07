@@ -1,9 +1,13 @@
 import datetime
-
+import credit.credit_document as cd
 import pandas as pd
 
 
 class Company(object):
+    """
+    This class represents a company as a time-invariant entity.
+    """
+
     def __init__(self):
         self._identifier: str = ""
         self._vat_number: str = ""
@@ -16,8 +20,25 @@ class Company(object):
         self._activity_description: str = ""
         self._bank_activity: str = ""
 
+    @property
+    def identifier(self):
+        return self._identifier
+
+    def fill_identifier_from_credit_document(self,
+                                             credit_document: cd.CreditDocument):
+        """
+        get_identifier: gets identifier from credit document
+        :param credit_document: credit document
+        :return: identifier
+        """
+        self._identifier = credit_document.get_identifier()
+
 
 class CompanyFinancials(object):
+    """
+    This class represents a company's financials at a given date.
+    """
+
     def __init__(self,
                  company: Company,
                  date: datetime.date):
@@ -62,14 +83,18 @@ class CompanyFinancials(object):
                                                                           "SocialLiensNumber",
                                                                           "SocialLiensAmount"])
         self._billing_analysis: pd.DataFrame = pd.DataFrame(columns=["Current", "Y-1", "Y-2"],
-                                                            index = ["NbBills",
-                                                                     "NbBillsPaidOnTime",
-                                                                     "NbBillsPaidAfter30days"
-                                                                     "NbUnpaidBills"])
+                                                            index=["NbBills",
+                                                                   "NbBillsPaidOnTime",
+                                                                   "NbBillsPaidAfter30days"
+                                                                   "NbUnpaidBills"])
         self._qualitative_forecasts: str = ""
 
 
 class Scoring(object):
+    """
+    This class represents a company's scoring at a given date.
+    """
+
     def __init__(self,
                  company: Company,
                  date: datetime.date):
@@ -80,13 +105,19 @@ class Scoring(object):
 
 
 class CreditRequest(object):
+    """
+    This class represents a credit request issued by a company at a given date
+    """
+
     def __init__(self,
                  company: Company,
                  date: datetime.date,
                  requested_amount: float,
                  granted_amount: float):
         self._request_date = date
-
+        self._company = company
+        self._requested_amount = requested_amount
+        self._granted_amount = granted_amount
 
 
 if __name__ == "__main__":

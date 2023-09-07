@@ -9,25 +9,25 @@ class CreditDocument(object):
         self._path = path
         self._reader = PdfReader(path)
         self._blocks = []
-        self._summary_block = SummaryBlock(self)
+        self._summary_block = SummarySection(self)
         self._blocks.append(self._summary_block)
-        self._identity_block = IdentityBlock(self)
+        self._identity_block = IdentitySection(self)
         self._blocks.append(self._identity_block)
-        self._activity_block = ActivityBlock(self)
+        self._activity_block = ActivitySection(self)
         self._blocks.append(self._activity_block)
-        self._bank_block = BankBlock(self)
+        self._bank_block = BankSection(self)
         self._blocks.append(self._bank_block)
-        self._key_financials_block = KeyFinancialsBlock(self)
+        self._key_financials_block = KeyFinancialsSection(self)
         self._blocks.append(self._key_financials_block)
-        self._bfr_block = BFRBlock(self)
+        self._bfr_block = BFRSection(self)
         self._blocks.append(self._bfr_block)
-        self._structural_analysis_block = StructuralAnalysisBlock(self)
+        self._structural_analysis_block = StructuralAnalysisSection(self)
         self._blocks.append(self._structural_analysis_block)
-        self._turnover_ratios_block = TurnoverRatiosBlock(self)
+        self._turnover_ratios_block = TurnoverRatiosSection(self)
         self._blocks.append(self._turnover_ratios_block)
-        self._tax_and_social_block = TaxAndSocialDefaultsBlock(self)
+        self._tax_and_social_block = TaxAndSocialDefaultsSection(self)
         self._blocks.append(self._tax_and_social_block)
-        self._billing_analysis_block = BillingAnalysisBlock(self)
+        self._billing_analysis_block = BillingAnalysisSection(self)
         self._blocks.append(self._billing_analysis_block)
 
     def get_text(self, page_number):
@@ -82,7 +82,7 @@ class CreditDocument(object):
             block.locate_in_document(self)
 
 
-class DocumentBlock(object):
+class DocumentSection(object):
 
     def __init__(self,
                  document: CreditDocument,
@@ -116,7 +116,7 @@ class DocumentBlock(object):
         pass
 
 
-class SummaryBlock(DocumentBlock):
+class SummarySection(DocumentSection):
 
     def __init__(self, document: CreditDocument):
         super().__init__(document=document,
@@ -126,7 +126,7 @@ class SummaryBlock(DocumentBlock):
                          expected_end_page=0)
 
 
-class IdentityBlock(DocumentBlock):
+class IdentitySection(DocumentSection):
 
     def __init__(self, document: CreditDocument):
         super().__init__(document=document,
@@ -136,7 +136,7 @@ class IdentityBlock(DocumentBlock):
                          expected_end_page=0)
 
 
-class ActivityBlock(DocumentBlock):
+class ActivitySection(DocumentSection):
 
     def __init__(self, document: CreditDocument):
         super().__init__(document=document,
@@ -146,7 +146,7 @@ class ActivityBlock(DocumentBlock):
                          expected_end_page=0)
 
 
-class BankBlock(DocumentBlock):
+class BankSection(DocumentSection):
 
     def __init__(self, document: CreditDocument):
         super().__init__(document=document,
@@ -156,7 +156,7 @@ class BankBlock(DocumentBlock):
                          expected_end_page=0)
 
 
-class KeyFinancialsBlock(DocumentBlock):
+class KeyFinancialsSection(DocumentSection):
 
     def __init__(self, document: CreditDocument):
         super().__init__(document=document,
@@ -166,7 +166,7 @@ class KeyFinancialsBlock(DocumentBlock):
                          expected_end_page=0)
 
 
-class BFRBlock(DocumentBlock):
+class BFRSection(DocumentSection):
 
     def __init__(self, document: CreditDocument):
         super().__init__(document=document,
@@ -176,7 +176,7 @@ class BFRBlock(DocumentBlock):
                          expected_end_page=0)
 
 
-class StructuralAnalysisBlock(DocumentBlock):
+class StructuralAnalysisSection(DocumentSection):
 
     def __init__(self, document: CreditDocument):
         super().__init__(document=document,
@@ -186,7 +186,7 @@ class StructuralAnalysisBlock(DocumentBlock):
                          expected_end_page=0)
 
 
-class TurnoverRatiosBlock(DocumentBlock):
+class TurnoverRatiosSection(DocumentSection):
 
     def __init__(self, document: CreditDocument):
         super().__init__(document=document,
@@ -196,7 +196,7 @@ class TurnoverRatiosBlock(DocumentBlock):
                          expected_end_page=0)
 
 
-class TaxAndSocialDefaultsBlock(DocumentBlock):
+class TaxAndSocialDefaultsSection(DocumentSection):
 
     def __init__(self, document: CreditDocument):
         super().__init__(document=document,
@@ -206,7 +206,7 @@ class TaxAndSocialDefaultsBlock(DocumentBlock):
                          expected_end_page=0)
 
 
-class BillingAnalysisBlock(DocumentBlock):
+class BillingAnalysisSection(DocumentSection):
 
     def __init__(self, document: CreditDocument):
         super().__init__(document=document,
