@@ -31,7 +31,7 @@ def compactify(text: Optional[str]) -> Optional[str]:
 
 
 def normalize(text: Optional[str],
-              compactform=False) -> Optional[str]:
+              compactform: bool = False) -> Optional[str]:
     """
     Remove spaces and newlines from text
     :param compactform: boolean; if True, compactify text

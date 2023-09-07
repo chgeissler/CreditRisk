@@ -1,42 +1,48 @@
+import os
+
 from PyPDF2 import PdfReader, PageObject
+from tabula import read_pdf as tb_rdpdf
 from typing import List, Dict, Tuple, Optional
 import credit.textutils as tu
 import camelot
+import pandas as pd
 
 
 class CreditDocument(object):
     def __init__(self, path):
         self._path = path
         self._reader = PdfReader(path)
-        self._blocks = []
-        self._summary_block = SummarySection(self)
-        self._blocks.append(self._summary_block)
-        self._identity_block = IdentitySection(self)
-        self._blocks.append(self._identity_block)
-        self._activity_block = ActivitySection(self)
-        self._blocks.append(self._activity_block)
-        self._bank_block = BankSection(self)
-        self._blocks.append(self._bank_block)
-        self._key_financials_block = KeyFinancialsSection(self)
-        self._blocks.append(self._key_financials_block)
-        self._bfr_block = BFRSection(self)
-        self._blocks.append(self._bfr_block)
-        self._structural_analysis_block = StructuralAnalysisSection(self)
-        self._blocks.append(self._structural_analysis_block)
-        self._turnover_ratios_block = TurnoverRatiosSection(self)
-        self._blocks.append(self._turnover_ratios_block)
-        self._tax_and_social_block = TaxAndSocialDefaultsSection(self)
-        self._blocks.append(self._tax_and_social_block)
-        self._billing_analysis_block = BillingAnalysisSection(self)
-        self._blocks.append(self._billing_analysis_block)
+        self._sections = []
+        self._summary_section = SummarySection(self)
+        self._sections.append(self._summary_section)
+        self._identity_section = IdentitySection(self)
+        self._sections.append(self._identity_section)
+        self._activity_section = ActivitySection(self)
+        self._sections.append(self._activity_section)
+        self._bank_section = BankSection(self)
+        self._sections.append(self._bank_section)
+        self._key_financials_section = KeyFinancialsSection(self)
+        self._sections.append(self._key_financials_section)
+        self._bfr_section = BFRSection(self)
+        self._sections.append(self._bfr_section)
+        self._structural_analysis_section = StructuralAnalysisSection(self)
+        self._sections.append(self._structural_analysis_section)
+        self._turnover_ratios_section = TurnoverRatiosSection(self)
+        self._sections.append(self._turnover_ratios_section)
+        self._tax_and_social_section = TaxAndSocialDefaultsSection(self)
+        self._sections.append(self._tax_and_social_section)
+        self._billing_analysis_section = BillingAnalysisSection(self)
+        self._sections.append(self._billing_analysis_section)
+
+    @property
+    def reader(self):
+        return self._reader
 
     def get_text(self, page_number):
         """
         Get text from page
-        :param
-            page_number: int, page number to get text from
-        :return:
-            text from page
+        :param page_number: int, page number to get text from
+        :return text from page
         """
         page = self._reader.pages[page_number]
         return page.extract_text()
@@ -46,28 +52,23 @@ class CreditDocument(object):
                          page_number: int) -> Optional[Tuple[str, int, int]]:
         """
         Find tag in page
-        :param
-            tag: str, string to find
-        :param
-            page_number: int, page number to search in
-        :return:
-            tuple of [matching tag, page number, position] if found, None otherwise
+        :param tag: str, string to find
+        :param page_number: int, page number to search in
+        :return tuple of [matching tag, page number, position] if found, None otherwise
         """
         page = self._reader.pages[page_number]
         text = page.extract_text()
-        tag_position_cp = tu.normalize(text).find(tu.normalize(tag))
-
-        if tag_position_cp >= 0:
-            tag_position = tu.remove_accents()
+        tag_position = tu.normalize(text).find(tu.normalize(tag))
+        if tag_position >= 0:
             return tag, page_number, tag_position
+        else:
+            return None
 
     def find_tag_in_document(self, tag: str) -> Optional[Tuple[str, int, int]]:
         """
         Find tag in document
-        :param
-            tag: str, string to find
-        :return:
-            tuple of (tag, number of first page where tag is found, tag position) if found, None otherwise
+        :param tag: str, string to find
+        :return tuple of (tag, number of first page where tag is found, tag position) if found, None otherwise
 
         """
         for page_number, page in enumerate(self._reader.pages):
@@ -77,9 +78,34 @@ class CreditDocument(object):
                 return tag, page_number, tag_position
         return None
 
-    def locate_blocks(self):
-        for block in self._blocks:
-            block.locate_in_document(self)
+    def locate_sections(self):
+        for section in self._sections:
+            section.locate_in_document(self)
+
+
+class DocumentCollector(object):
+
+    def __init__(self, path: str):
+        self._path = path
+        self._documents = pd.DataFrame(columns=["Size",
+                                                "Nb pages",
+                                                "Nb tables pypdf",
+                                                "Nb tables tabula",
+                                                "Nb tables camelot"])
+
+    def collect_tables(self):
+        """
+            a function that scans a directory for pdf files and collects tables from them
+            :return:
+            """
+        files = os.listdir(self._path)
+        for file in files:
+            doc = CreditDocument(os.path.join(self._path, file))
+            # get the file size
+            self._documents.loc[file, "Size"] = os.path.getsize(os.path.join(self._path, file))
+            self._documents.loc[file, "Nb pages"] = len(doc.reader.pages)
+
+        pass
 
 
 class DocumentSection(object):
@@ -103,6 +129,11 @@ class DocumentSection(object):
         self._end_tag_position = -1
 
     def locate_in_document(self, doc: CreditDocument):
+        """
+        Locate section in document from start and end tags
+        :param doc: CreditDocument, document to locate section in
+        :return: None. Self attributes are updated
+        """
         for start_tag in self._starttaglist:
             start_tag_tuple = doc.find_tag_in_document(start_tag)
             if start_tag_tuple is not None:
@@ -113,6 +144,15 @@ class DocumentSection(object):
             if end_tag_tuple is not None:
                 self._end_tag, self._end_page, self._end_tag_position = end_tag_tuple
                 break
+        pass
+
+    def read_tables_in_section(self,
+                               use_tabula: bool = True):
+        """
+        Read tables in section
+        :param use_tabula: bool, use tabula to read tables
+        :return: None. Self attributes are updated
+        """
         pass
 
 
