@@ -93,9 +93,9 @@ class DocumentCollector(object):
                                                 "Nb tables tabula",
                                                 "Nb tables camelot"])
 
-    def collect_tables(self):
+    def collect_documents(self):
         """
-            a function that scans a directory for pdf files and collects tables from them
+            a function that scans a directory for pdf files and collects documents from them
             :return:
             """
         files = os.listdir(self._path)
@@ -106,6 +106,13 @@ class DocumentCollector(object):
             self._documents.loc[file, "Nb pages"] = len(doc.reader.pages)
 
         pass
+
+    def write_doc_stats(self):
+        """
+        Write document stats to csv file
+        :return:
+        """
+        self._documents.to_csv(os.path.join("./", "doc_stats.csv"))
 
 
 class DocumentSection(object):

@@ -26,7 +26,7 @@ if __name__ == "__main__":
     # camdoc = camelot.read_pdf(file_path, pages="all", flavor='stream')
     doccollector = cd.DocumentCollector(data_path)
     doccollector.collect_tables()
-    pass
+    doccollector.write_doc_stats()
 
 
 
