@@ -45,3 +45,22 @@ def normalize(text: Optional[str],
         if compactform:
             res = compactify(res)
         return res
+
+
+def right_section_after_tag (line: str, tag: str, do_normalize: bool = True) -> str:
+    """
+    Returns the right section of a line after a tag
+    :param line:
+    :param tag:
+    :param do_normalize:
+    :return:
+    """
+    if do_normalize:
+        line = normalize(line)
+        tag = normalize(tag)
+    res = line.split(tag)[-1].split(":")[-1]
+    # remove left trailing spaces from res
+    res = res.lstrip().rstrip()
+    return res
+
+    pass

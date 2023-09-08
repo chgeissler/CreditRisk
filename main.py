@@ -10,23 +10,28 @@ import pandas as pd
 
 if __name__ == "__main__":
     data_path = "TestData"
-    # concatenate data_path and file name
-    file_path = data_path + "SAS_LAGARDE_&_LARONZE_07_2023.pdf"
-    # data_path = 'TestData/SAS_LAGARDE_&_LARONZE_07_2023.pdf'
-    # tabula version
-    # tb_data = read_pdf(file_path,
-    #                    pages="all",
-    #                    multiple_tables=True)
-    # # pypdf2 version
-    # # reader = PdfReader(data_path)
-    # # page = reader.pages[3]
-    # # print(page.extract_text())
-    # doc = cd.CreditDocument(file_path)
-    # # doc.locate_blocks()
+    data_path = "/home/cgeissler/local_data/CCRCredit"
+    do_single_file = False
+    do_batch = True
+
     # camdoc = camelot.read_pdf(file_path, pages="all", flavor='stream')
-    doccollector = cd.DocumentCollector(data_path)
-    doccollector.collect_tables()
-    doccollector.write_doc_stats()
+    if do_batch:
+        doccollector = cd.DocumentCollector(data_path)
+        doccollector.collect_documents(verbose=True, istart=0, iend=500)
+        doccollector.write_doc_stats()
+    if do_single_file:
+        file_path = f"{data_path}/334064.pdf"
+        document = cd.CreditDocument(file_path)
+        document.locate_sections()
+        tag, pagenumber, position, line, position_in_line = document.find_tag_in_page("Analyste", 0)
+        summary_text = document.summary_section.full_text
+        iline, line, right_section = document.summary_section.get_start_tag_line()
+        requested_amount = document.summary_section.get_requested_amount()
+        pass
+        # get ascii code from character
+
+        pass
+
 
 
 
