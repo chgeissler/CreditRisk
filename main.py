@@ -11,16 +11,16 @@ import pandas as pd
 if __name__ == "__main__":
     data_path = "TestData"
     data_path = "/home/cgeissler/local_data/CCRCredit"
-    do_single_file = False
-    do_batch = True
+    do_single_file = True
+    do_batch = False
 
     # camdoc = camelot.read_pdf(file_path, pages="all", flavor='stream')
     if do_batch:
         doccollector = cd.DocumentCollector(data_path)
-        doccollector.collect_documents(verbose=True, istart=0, iend=500)
+        doccollector.collect_documents(verbose=True, istart=0, iend=100)
         doccollector.write_doc_stats()
     if do_single_file:
-        file_path = f"{data_path}/334064.pdf"
+        file_path = f"{data_path}/Enquete_283397.pdf"
         document = cd.CreditDocument(file_path)
         document.locate_sections()
         tag, pagenumber, position, line, position_in_line = document.find_tag_in_page("Analyste", 0)

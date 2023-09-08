@@ -291,7 +291,7 @@ class DocumentSection(object):
         for iline, line in enumerate(lines):
             if ntag in line:
                 return iline, line, line.split(ntag)[0]
-        return iline, line, line.split(ntag)[0]
+        return -1, "", ""
 
     def get_tag_candidates_lines(self, tags: List[str]) -> Tuple[str, int, str]:
         """
@@ -340,7 +340,8 @@ class SummarySection(DocumentSection):
         """
         amount_str = ""
         tag, iline, line = self.get_tag_candidates_lines(["encours demandé",
-                                                          "garantie demandee - duree"])
+                                                          "garantie demandee - duree",
+                                                          "garantie demandee"])
         if iline >= 0:
             amount_str = tu.right_section_after_tag(line, tag)
         return amount_str
