@@ -38,6 +38,8 @@ class CreditDocument(object):
         self._billing_analysis_section = BillingAnalysisSection(self)
         self._sections.append(self._billing_analysis_section)
 
+        self._pages_text = {}
+
     @property
     def pypdf_reader(self):
         return self._pypdf_reader
@@ -54,22 +56,32 @@ class CreditDocument(object):
     def summary_section(self):
         return self._summary_section
 
-    def get_text(self, page_number):
+    def get_page_text(self, page_number):
         """
         Get text from page
         :param page_number: int, page number to get text from
         :return text from page
         """
         page = self._pypdf_reader.pages[page_number]
-        return page.extract_text()
+        if page_number in self._pages_text.keys():
+            page_text = self._pages_text[page_number]
+        else:
+            page_text = page.extract_text()
+            self._pages_text[page_number] = page_text
+        return page_text
 
     def find_tag_in_page(self,
                          tag: str,
-                         page_number: int) -> Tuple[str, int, int, int, int]:
+                         page_number: int,
+                         space_sensitive=False,
+                         max_spaces_number=1) -> Tuple[str, int, int, int, int]:
         """
         Find tag in page
+
+        :param max_spaces_number:
         :param tag: str, string to find
         :param page_number: int, page number to search in
+        :param space_sensitive: bool; if false, will look for a match up to random spaces
         :return tuple of [matching tag, page number, position] if found, None otherwise
         """
         page = self._pypdf_reader.pages[page_number]
@@ -83,11 +95,12 @@ class CreditDocument(object):
         tag_position_in_line = -1
         if tag_position >= 0:
             # get lines from text
+            # warning: this is not robust to line breaks
             nlines = ntext.split("\n")
-            # look for the frst line containing the tag
+            # look for the first line containing the tag
             for iline, nline in enumerate(nlines):
                 if tu.normalize(tag) in nline:
-                    tag_position_in_line = nline.find(tu.normalize(tag))
+                    tag_position_in_line = tu.search_for_tag(tag, nline, space_sensitive=space_sensitive)
                     return tag, page_number, tag_position, iline, tag_position_in_line
         return tag, page_number, tag_position, iline, tag_position_in_line
 
@@ -128,10 +141,11 @@ class CreditDocument(object):
         text = ""
         for ipage, page in enumerate(self._pypdf_reader.pages):
             if start_page <= ipage <= end_page:
+                page_text = self.get_page_text(ipage)
                 if ipage == start_page:
-                    text += page.extract_text()[start_position:]
+                    text += page_text[start_position:]
                 elif ipage == end_page:
-                    text += page.extract_text()[:end_position]
+                    text += page_text[:end_position]
                 else:
                     text += page.extract_text()
         return text

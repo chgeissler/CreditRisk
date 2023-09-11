@@ -1,5 +1,6 @@
 from typing import Optional
 from unidecode import unidecode
+import re
 
 
 def remove_accents(text: Optional[str]) -> Optional[str]:
@@ -64,3 +65,44 @@ def right_section_after_tag (line: str, tag: str, do_normalize: bool = True) -> 
     return res
 
     pass
+
+
+def zip_list_of_chars(list_of_chars: list) -> str:
+    """
+    Zip a list of chars into a string
+    :param list_of_chars:
+    :return:
+    """
+    return "".join(list_of_chars)
+
+
+def search_for_tag(tag: str,
+                   text: str,
+                   do_normalize: bool = True,
+                   space_sensitive: bool = True,
+                   max_spaces_number: int = 1) -> int:
+    """
+    Search for a tag in a text: returns the position of the first occurrence of the tag in the text
+    :param tag: tag to search for
+    :param text: text to search in
+    :param do_normalize: if True, normalize tag and text (remove accents, upper case)
+    :param space_sensitive: if false: looks for tag with possible spaces in between
+    :param max_spaces_number: maximum number of spaces between characters of tag
+    :return:
+    """
+    if do_normalize:
+        tag = normalize(tag)
+        text = normalize(text)
+    if not space_sensitive:
+        if max_spaces_number == 1:
+            tag = "".join([f"{c}\\s?" for c in tag])
+        else:
+            lbrace = "{"
+            rbrace = "}"
+            tag = "".join([f"{c}\\s{lbrace}0,{max_spaces_number}{rbrace}" for c in tag])
+            res = re.search(tag, text)
+            if res is None:
+                return -1
+    else:
+        return text.find(tag)
+
