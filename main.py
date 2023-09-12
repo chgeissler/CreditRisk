@@ -17,7 +17,7 @@ if __name__ == "__main__":
     # camdoc = camelot.read_pdf(file_path, pages="all", flavor='stream')
     if do_batch:
         doccollector = cd.DocumentCollector(data_path)
-        doccollector.collect_documents(verbose=True, istart=0, iend=1000)
+        doccollector.collect_documents(verbose=True, istart=0, iend=200)
         doccollector.write_doc_stats()
     if do_single_file:
         file_path = f"{data_path}/Enquete_210049.pdf"

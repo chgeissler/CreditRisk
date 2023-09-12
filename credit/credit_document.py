@@ -12,10 +12,11 @@ class CreditDocument(object):
     def __init__(self, path):
         self._path = path
         self._pypdf_reader = PdfReader(path)
-        self._tbl_tables = tbl.read_pdf(path,
-                                        pages="all",
-                                        multiple_tables=True
-                                        )
+        # self._tbl_tables = tbl.read_pdf(path,
+        #                                 pages="all",
+        #                                 multiple_tables=True
+        #                                 )
+        self._tbl_tables = []
         self._sections = []
         self._summary_section = SummarySection(self)
         self._sections.append(self._summary_section)
@@ -100,7 +101,7 @@ class CreditDocument(object):
             # look for the first line containing the tag
             for iline, nline in enumerate(nlines):
                 if tu.normalize(tag) in nline:
-                    tag_position_in_line = tu.search_for_tag(tag, nline, space_sensitive=space_sensitive)
+                    tag_position_in_line, _ = tu.search_for_tag(tag, nline, space_sensitive=space_sensitive)
                     return tag, page_number, tag_position, iline, tag_position_in_line
         return tag, page_number, tag_position, iline, tag_position_in_line
 
@@ -181,7 +182,7 @@ class DocumentCollector(object):
                 # get the number of pages
                 self._documents.loc[file, "Nb pages"] = len(doc.pypdf_reader.pages)
                 # get the number of tables
-                self._documents.loc[file, "Nb tables tabula"] = doc.nb_tbl_tables
+                # self._documents.loc[file, "Nb tables tabula"] = doc.nb_tbl_tables
                 # get the requested amount
                 self._documents.loc[file, "Requested amount"] = doc.summary_section.get_requested_amount()
         pass
@@ -354,7 +355,7 @@ class DocumentSection(object):
                 return iline, line, match, rightbit
         return iline, "", "", ""
 
-    def get_start_tag_line(self) -> Tuple[int, int, str, str]:
+    def get_start_tag_line(self) -> Tuple[int, int, str, str, str]:
         """
         Get the first line in full text containing start tag
         :return: first matching line index,
