@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Tuple
 from unidecode import unidecode
 import re
 
@@ -42,13 +42,13 @@ def normalize(text: Optional[str],
     if text is None:
         return None
     else:
-        res = remove_accents(text).upper()
+        res = remove_accents(text).lower()
         if compactform:
             res = compactify(res)
         return res
 
 
-def right_section_after_tag (line: str, tag: str, do_normalize: bool = True) -> str:
+def right_bit_after_tag(line: str, tag: str, do_normalize: bool = True) -> str:
     """
     Returns the right section of a line after a tag
     :param line:
@@ -80,7 +80,7 @@ def search_for_tag(tag: str,
                    text: str,
                    do_normalize: bool = True,
                    space_sensitive: bool = True,
-                   max_spaces_number: int = 1) -> int:
+                   max_spaces_number: int = 1) -> Tuple[int, str]:
     """
     Search for a tag in a text: returns the position of the first occurrence of the tag in the text
     :param tag: tag to search for
@@ -88,7 +88,8 @@ def search_for_tag(tag: str,
     :param do_normalize: if True, normalize tag and text (remove accents, upper case)
     :param space_sensitive: if false: looks for tag with possible spaces in between
     :param max_spaces_number: maximum number of spaces between characters of tag
-    :return:
+    :return: the start index of the first match of tag if any (-1 else),
+             the matching string if any ('' else)
     """
     if do_normalize:
         tag = normalize(tag)
@@ -100,9 +101,12 @@ def search_for_tag(tag: str,
             lbrace = "{"
             rbrace = "}"
             tag = "".join([f"{c}\\s{lbrace}0,{max_spaces_number}{rbrace}" for c in tag])
-            res = re.search(tag, text)
-            if res is None:
-                return -1
+        res = re.search(tag, text)
+        if res is None:
+            return -1, ""
+        else:
+            istart, iend = res.span()
+            return istart, res.string[istart:iend]
     else:
-        return text.find(tag)
+        return text.find(tag), tag
 

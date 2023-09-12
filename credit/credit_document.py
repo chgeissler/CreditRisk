@@ -131,7 +131,8 @@ class CreditDocument(object):
                       end_page: int,
                       end_position: int) -> str:
         """
-        Get full text from document in a specified section
+        Get full text from document in a specified section,
+        taking into account a start and end page, and a start and end position in these pages
         :param start_page: int, page number where to start
         :param start_position: int, position in start page where to start
         :param end_page: int, page number where to end
@@ -147,7 +148,7 @@ class CreditDocument(object):
                 elif ipage == end_page:
                     text += page_text[:end_position]
                 else:
-                    text += page.extract_text()
+                    text += page_text
         return text
 
 
@@ -289,42 +290,77 @@ class DocumentSection(object):
                                                        self._end_page,
                                                        self._end_tag_position)
 
-    def get_tag_line(self, tag: str) -> Tuple[int, str, str]:
+    def get_tag_line(self,
+                     tag: str,
+                     space_sensitive=False,
+                     max_space_number=1) -> Tuple[int, int, str, str, str]:
         """
         Get the first line in full text containing tag
+        :param space_sensitive:
+        :param max_space_number:
         :param tag: str, tag to get line from
-        :return: str, line containing tag, right section of line following tag
+        :return: index of first line containing tag,
+                 index of continuation line in case the tag is split by \n,
+                 bit of line starting with match,
+                 first match of tag in line,
+                 right section of line following match as str
         """
         if self._full_text == "":
             self.get_full_section_text()
         ntag = tu.normalize(tag)
         ntext = tu.normalize(self._full_text)
+        # looks first for the tag in the original text, not split into lines
+        position, _ = tu.search_for_tag(ntag,
+                                        text=ntext,
+                                        space_sensitive=space_sensitive,
+                                        max_spaces_number=max_space_number)
+        if position < 0:
+            return -1, -1, "", "", ""
+        # cut the text into lines along carriage returns
         lines = ntext.split("\n")
-        iline = -1
-        line = ""
         for iline, line in enumerate(lines):
-            if ntag in line:
-                return iline, line, line.split(ntag)[0]
-        return -1, "", ""
+            inextline = iline + 1
+            # find start position and effective match of ntag
+            position, match = tu.search_for_tag(ntag,
+                                                line,
+                                                space_sensitive=space_sensitive,
+                                                max_spaces_number=max_space_number)
+            if position >= 0:
+                return iline, iline, line[position:-1], match, tu.right_bit_after_tag(line, match)
+            elif inextline < len(lines) - 1:
+                line = line + lines[inextline]
+                position, match = tu.search_for_tag(ntag,
+                                                    line,
+                                                    space_sensitive=space_sensitive,
+                                                    max_spaces_number=max_space_number)
+                if position >= 0:
+                    return iline, inextline, line[position:-1], match, tu.right_bit_after_tag(line, match)
 
-    def get_tag_candidates_lines(self, tags: List[str]) -> Tuple[str, int, str]:
+        return -1, -1, "", "", ""
+
+    def get_tag_candidates_lines(self, tags: List[str]) -> Tuple[int, str, str, str]:
         """
         returns the coordinates of the first tag from a given list found in the section
         :param tags: list of str, tags to look for
-        :return: the first tag found, its line number and the line containing the tag
+        :return: the position of first matching string found,
+                 the mathing string
+                 the line containing the matching tag
+                 the right bit of line after the match
         """
         iline = -1
-        line = ""
         for tag in tags:
-            iline, line, _ = self.get_tag_line(tag)
+            iline, _, line, match, rightbit = self.get_tag_line(tag)
             if iline >= 0:
-                return tag, iline, line
-        return "", iline, line
+                return iline, line, match, rightbit
+        return iline, "", "", ""
 
-    def get_start_tag_line(self) -> Tuple[int, str, str]:
+    def get_start_tag_line(self) -> Tuple[int, int, str, str]:
         """
         Get the first line in full text containing start tag
-        :return: str, start tag line
+        :return: first matching line index,
+                 continuation line index,
+                 full start tag line,
+                 line bit following tag
         """
         return self.get_tag_line(self._start_tag)
 
@@ -353,11 +389,11 @@ class SummarySection(DocumentSection):
         :return: float, requested amount
         """
         amount_str = ""
-        tag, iline, line = self.get_tag_candidates_lines(["encours demandé",
-                                                          "garantie demandee - duree",
-                                                          "garantie demandee"])
+        iline, line, match, rightbit = self.get_tag_candidates_lines(["encours demande",
+                                                                      "garantie demandee - duree",
+                                                                      "garantie demandee"])
         if iline >= 0:
-            amount_str = tu.right_section_after_tag(line, tag)
+            amount_str = rightbit
         return amount_str
 
 
