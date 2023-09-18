@@ -25,7 +25,7 @@ class Company(object):
         return self._identifier
 
     def fill_identifier_from_credit_document(self,
-                                             credit_document: cd.CreditDocument):
+                                             credit_document: cd.DocumentWithSections):
         """
         get_identifier: gets identifier from credit document
         :param credit_document: credit document

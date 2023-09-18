@@ -94,6 +94,8 @@ def search_for_tag(tag: str,
     if do_normalize:
         tag = normalize(tag)
         text = normalize(text)
+    if len(text) < len(tag):
+        return -1, ""
     if not space_sensitive:
         if max_spaces_number == 1:
             tag = "".join([f"{c}\\s?" for c in tag])
