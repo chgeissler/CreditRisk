@@ -1,4 +1,6 @@
 from typing import Optional, Tuple
+
+import numpy as np
 from unidecode import unidecode
 import re
 
@@ -64,7 +66,29 @@ def right_bit_after_tag(line: str, tag: str, do_normalize: bool = True) -> str:
     res = res.lstrip().rstrip()
     return res
 
-    pass
+
+def currency_to_float(text: str, curr: str) -> float:
+    """
+    Convert a currency string to a float
+    :param text: string to convert
+    :param curr: currency
+    :return: float
+    """
+    coeff = 1.0
+    amount = 0
+    text = text.replace(" ", "").lower()
+    text = text.split(curr)[0]
+    if text[-1] == "k":
+        coeff = 1000.0
+        text = text[:-1]
+    elif text[-1] == "m":
+        coeff = 1000000.0
+        text = text[:-1]
+    try:
+        amount = float(text)
+    except ValueError:
+        amount = np.nan
+    return amount * coeff
 
 
 def zip_list_of_chars(list_of_chars: list) -> str:

@@ -4,13 +4,16 @@ import os
 import credit.document as doc
 import camelot
 import pandas as pd
+# import adextractor
 
 
 class CreditDocument(doc.DocumentWithSections):
 
     def __init__(self,
-                 path: str):
-        super().__init__(path=path)
+                 path: str,
+                 name: str):
+        super().__init__(path=path, name=name)
+        self._language = ""
         summary_section = doc.DocumentSection(self,
                                               starttaglist=["Société destinataire"],
                                               endtaglist=["Identité"])
@@ -94,6 +97,30 @@ class CreditDocument(doc.DocumentWithSections):
     def billing_analysis_section(self):
         return self._sections['BillingAnalysis']
 
+    @property
+    def language(self):
+        return self._language
+
+    def set_language(self, language: str):
+        self._language = language
+
+    def get_tag_in_section_line(self,
+                                section_name: str,
+                                candidate_tags: list) -> str:
+        """
+        Get tag in section line
+        :param section_name:
+        :param candidate_tags:
+        :return:
+        """
+        tag_str = ""
+        section = self._sections.get(section_name, None)
+        if section is not None:
+            iline, line, match, rightbit = section.get_tag_candidates_lines(candidate_tags)
+            if iline >= 0:
+                tag_str = rightbit
+        return tag_str
+
     def get_requested_amount(self) -> str:
         """
         Get requested amount from section
@@ -122,6 +149,18 @@ class CreditDocument(doc.DocumentWithSections):
             amount_str = rightbit
         return amount_str
 
+    def get_company_name(self) -> str:
+        """
+        Get company name from section
+        :return: str, company name
+        """
+        name_str = ""
+        iline, line, match, rightbit = self.identity_section.get_tag_candidates_lines(["Nom",
+                                                                                      "Raison sociale"])
+        if iline >= 0:
+            name_str = rightbit
+        return name_str
+
 
 class CreditDocumentCollector(doc.DocumentCollector):
 
@@ -144,7 +183,8 @@ class CreditDocumentCollector(doc.DocumentCollector):
             if istart <= ifile <= iend:
                 if verbose:
                     print("Collecting document {}".format(file))
-                doct = CreditDocument(os.path.join(self._path, file))
+                fullpath = os.path.join(self._path, file)
+                doct = CreditDocument(self._path, file)
                 doct.locate_sections()
                 self._documents.loc[file, "Requested amount"] = doct.get_requested_amount()
                 self._documents.loc[file, "Granted amount"] = doct.get_granted_amount()

@@ -1,3 +1,4 @@
+import PyPDF2.errors
 from PyPDF2 import PdfReader, PageObject
 import tabula as tbl
 from typing import List, Dict, Tuple, Optional
@@ -7,9 +8,21 @@ import os
 
 
 class DocumentWithSections(object):
-    def __init__(self, path):
+    def __init__(self,
+                 path: str,
+                 name: str):
         self._path = path
-        self._pypdf_reader = PdfReader(path)
+        self._name = name
+        fullpath = os.path.join(path, name)
+        # Checking if fullpath exists as a file and ia a pdf
+        if not os.path.isfile(fullpath):
+            raise FileNotFoundError("File {} not found".format(fullpath))
+        if not name.endswith(".pdf"):
+            raise TypeError("File {} is not a pdf".format(fullpath))
+        try:
+            self._pypdf_reader = PdfReader(fullpath)
+        except PyPDF2.errors.PdfReadError:
+            raise TypeError("File {} could not be read by PyPDF2".format(fullpath))
         # self._tbl_tables = tbl.read_pdf(path,
         #                                 pages="all",
         #                                 multiple_tables=True
@@ -30,12 +43,24 @@ class DocumentWithSections(object):
         return self._pypdf_reader
 
     @property
+    def nb_pages(self):
+        return len(self._pypdf_reader.pages)
+
+    @property
     def tbl_tables(self):
         return self._tbl_tables
 
     @property
     def nb_tbl_tables(self):
         return len(self._tbl_tables)
+
+    @property
+    def path(self):
+        return self._path
+
+    @property
+    def name(self):
+        return self._name
 
     def get_page_text(self, page_number):
         """
@@ -65,9 +90,8 @@ class DocumentWithSections(object):
         :param space_sensitive: bool; if false, will look for a match up to random spaces
         :return tuple of [matching tag, page number, position] if found, None otherwise
         """
-        page = self._pypdf_reader.pages[page_number]
         # extract full text from page
-        text = page.extract_text()
+        text = self.get_page_text(page_number)
         # normalize text
         ntext = tu.normalize(text)
         # get tag position in normalized text
@@ -85,18 +109,31 @@ class DocumentWithSections(object):
                     return tag, page_number, tag_position, iline, tag_position_in_line
         return tag, page_number, tag_position, iline, tag_position_in_line
 
-    def find_tag_in_document(self, tag: str) -> Tuple[str, int, int, int, int]:
+    def find_tag_in_document(self,
+                             tag: str,
+                             min_page=0,
+                             max_page=1000000,
+                             min_line=0,
+                             max_line=1000
+                             ) -> Tuple[str, int, int, int, int]:
         """
         Find tag in document
+        :param min_page: the first page to look for the tag in
+        :param max_page:    the last page to look for the tag in
+        :param min_line:    the first line to look for the tag in
+        :param max_line:    the last line to look for the tag in
         :param tag: str, string to find
         :return tuple of (tag, number of first page where tag is found, tag position) if found, None otherwise
 
         """
+        res = (tag, -1, -1, -1, -1)
         for page_number, page in enumerate(self._pypdf_reader.pages):
-            res = self.find_tag_in_page(tag, page_number)
-            if res[1] >= 0:
-                return res
-        return tag, -1, -1, -1, -1
+            if min_page <= page_number <= max_page:
+                res = self.find_tag_in_page(tag, page_number)
+                # look for the position of the first tag occurence in the page
+                if res[2] >= 0:
+                    return res
+        return res
 
     def locate_sections(self):
         """
@@ -155,10 +192,11 @@ class DocumentCollector(object):
             if istart <= ifile <= iend:
                 if verbose:
                     print("Collecting document {}".format(file))
-                doc = DocumentWithSections(os.path.join(self._path, file))
+                fullpath = os.path.join(self._path, file)
+                doc = DocumentWithSections(self._path, file)
                 doc.locate_sections()
                 # get the file size
-                self._documents.loc[file, "Size"] = os.path.getsize(os.path.join(self._path, file))
+                self._documents.loc[file, "Size"] = os.path.getsize(fullpath)
                 # get the number of pages
                 self._documents.loc[file, "Nb pages"] = len(doc.pypdf_reader.pages)
         pass
@@ -226,15 +264,25 @@ class DocumentSection(object):
     def start_tag_position_in_line(self):
         return self._start_tag_position_in_line
 
-    def locate_in_document(self, d: DocumentWithSections):
+    @property
+    def is_located(self):
+        return (self._start_page >= 0
+                and self._start_tag_position >= 0)
+
+    def locate_in_document(self,
+                           d: DocumentWithSections,
+                           min_page=0,
+                           max_page=1000000):
         """
         Locate section in document from start and end tags
+        :param min_page: first page to look for tags in
+        :param max_page:   last page to look for tags in
         :param d: CreditDocument, document to locate section in
         :return: None. Self attributes are updated
         """
         # look for the first tag in the starting list matching the document
         for start_tag in self._starttaglist:
-            start_tag_tuple = d.find_tag_in_document(start_tag)
+            start_tag_tuple = d.find_tag_in_document(start_tag, min_page=min_page, max_page=max_page)
             if start_tag_tuple[1] >= 0:
                 (self._start_tag,
                  self._start_page,
@@ -245,7 +293,7 @@ class DocumentSection(object):
         # look for the first tag in the starting list matching the document
         # The purpose is to delimitate the section starting with the first tag
         for end_tag in self._endtaglist:
-            end_tag_tuple = d.find_tag_in_document(end_tag)
+            end_tag_tuple = d.find_tag_in_document(end_tag, min_page=self._start_page, max_page=max_page)
             if end_tag_tuple[1] >= 0:
                 (self._end_tag,
                  self._end_page,
@@ -278,6 +326,8 @@ class DocumentSection(object):
                  first match of tag in line,
                  right section of line following match as str
         """
+        if not self.is_located:
+            self.locate_in_document(self._document)
         if self._full_text == "":
             self.get_full_section_text()
         ntag = tu.normalize(tag)
