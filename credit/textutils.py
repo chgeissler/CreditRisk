@@ -50,21 +50,6 @@ def normalize(text: Optional[str],
         return res
 
 
-def right_bit_after_tag(line: str, tag: str, do_normalize: bool = True) -> str:
-    """
-    Returns the right section of a line after a tag
-    :param line:
-    :param tag:
-    :param do_normalize:
-    :return:
-    """
-    if do_normalize:
-        line = normalize(line)
-        tag = normalize(tag)
-    res = line.split(tag)[-1].split(":")[-1]
-    # remove left trailing spaces from res
-    res = res.lstrip().rstrip()
-    return res
 
 
 def currency_to_float(text: str, curr: str) -> float:
@@ -127,6 +112,7 @@ def search_for_tag(tag: str,
             lbrace = "{"
             rbrace = "}"
             tag = "".join([f"{c}\\s{lbrace}0,{max_spaces_number}{rbrace}" for c in tag])
+        tag += "\\s*:?"
         res = re.search(tag, text)
         if res is None:
             return -1, ""
@@ -136,3 +122,38 @@ def search_for_tag(tag: str,
     else:
         return text.find(tag), tag
 
+
+def field_between_tags(line: str,
+                       tag: str,
+                       ending_tags=[],
+                       do_normalize: bool = True,
+                       search_for_shortest: bool = True
+                       ) -> str:
+    """
+    Returns the right section of a line after a tag
+    :param ending_tags:
+    :param line:
+    :param tag:
+    :param do_normalize:
+    :param search_for_shortest: if True, search for the shortest section between tag and ending tag
+    :return:
+    """
+    if do_normalize:
+        line = normalize(line)
+        tag = normalize(tag)
+    field = line.split(tag)[-1]
+    if ending_tags is []:
+        ending_tags.append(":")
+        ending_tags.append('\\n')  # default
+    endposition = 1000000
+    bestendposition = endposition
+    for ending_tag in ending_tags:
+        endposition, _ = search_for_tag(ending_tag, field, do_normalize=do_normalize)
+        if endposition >= 0:
+            if endposition < bestendposition:
+                bestendposition = endposition
+                field = field[:bestendposition]
+            if not search_for_shortest:
+                break
+    field = field.lstrip().rstrip()
+    return field

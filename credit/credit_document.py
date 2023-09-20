@@ -14,15 +14,28 @@ class CreditDocument(doc.DocumentWithSections):
                  name: str):
         super().__init__(path=path, name=name)
         self._language = ""
-        summary_section = doc.DocumentSection(self,
-                                              starttaglist=["Société destinataire"],
-                                              endtaglist=["Identité"])
-        self.add_section(secname="Summary", sec=summary_section)
+        self._summary_section = doc.DocumentSection(self,
+                                                    starttaglist=["Société destinataire"],
+                                                    endtaglist=["Identité"])
+        self.add_section(secname="Summary", sec=self._summary_section)
 
         self._identity_section = doc.DocumentSection(document=self,
                                                      starttaglist=["Identité"],
                                                      endtaglist=["Activité"])
         self.add_section(secname="Identity", sec=self._identity_section)
+        self._identity_section.declare_field(name="Identifier", tags=["Siren", "Identifiant"])
+        self._identity_section.declare_field(name="VatNumber", tags=["N° TVA", "TVA"])
+        self._identity_section.declare_field(name="CreationDate", tags=["Date de création"])
+        self._identity_section.declare_field(name="ActivityDescription", tags=["Activité"])
+        self._identity_section.declare_field(name="FullName", tags=["Nom", "Raison sociale"])
+        self._identity_section.declare_field(name="IndustryCode", tags=["Code APE"])
+        self._identity_section.declare_field(name="ZipCode", tags=["Code postal"])
+        self._identity_section.declare_field(name="Address", tags=["Adresse"])
+        self._identity_section.declare_field(name="City", tags=["Ville"])
+        self._identity_section.declare_field(name="BankActivity", tags=["Activité bancaire"])
+        self._identity_section.declare_field(name="Capital", tags=["Capital"])
+        self._identity_section.declare_field(name="LegalForm", tags=["Forme juridique"])
+        self._identity_section.declare_field(name="NbEmployees", tags=["Effectif"])
 
         self._bank_section = doc.DocumentSection(self,
                                                  starttaglist=["informations bancaires"],
@@ -104,62 +117,47 @@ class CreditDocument(doc.DocumentWithSections):
     def set_language(self, language: str):
         self._language = language
 
-    def get_tag_in_section_line(self,
-                                section_name: str,
-                                candidate_tags: list) -> str:
-        """
-        Get tag in section line
-        :param section_name:
-        :param candidate_tags:
-        :return:
-        """
-        tag_str = ""
-        section = self._sections.get(section_name, None)
-        if section is not None:
-            iline, line, match, rightbit = section.get_tag_candidates_lines(candidate_tags)
-            if iline >= 0:
-                tag_str = rightbit
-        return tag_str
 
-    def get_requested_amount(self) -> str:
-        """
-        Get requested amount from section
-        :return: float, requested amount
-        """
-        amount_str = ""
-        iline, line, match, rightbit = self.summary_section.get_tag_candidates_lines(["demandee - duree",
-                                                                                     "demandee",
-                                                                                      "demande",
-                                                                                      "pedida"])
-        if iline >= 0:
-            amount_str = rightbit
-        return amount_str
-
-    def get_granted_amount(self) -> str:
-        """
-        Get requested amount from section
-        :return: float, requested amount
-        """
-        amount_str = ""
-        iline, line, match, rightbit = self.summary_section.get_tag_candidates_lines(["accordee - duree",
-                                                                                      "accordee",
-                                                                                      "accorde",
-                                                                                      "accordada"])
-        if iline >= 0:
-            amount_str = rightbit
-        return amount_str
-
-    def get_company_name(self) -> str:
-        """
-        Get company name from section
-        :return: str, company name
-        """
-        name_str = ""
-        iline, line, match, rightbit = self.identity_section.get_tag_candidates_lines(["Nom",
-                                                                                      "Raison sociale"])
-        if iline >= 0:
-            name_str = rightbit
-        return name_str
+    #
+    # def get_requested_amount(self) -> str:
+    #     """
+    #     Get requested amount from section
+    #     :return: float, requested amount
+    #     """
+    #     amount_str = ""
+    #     iline, line, match, rightbit = self.summary_section.get_tag_candidates_lines(["demandee - duree",
+    #                                                                                   "demandee",
+    #                                                                                   "demande",
+    #                                                                                   "pedida"])
+    #     if iline >= 0:
+    #         amount_str = rightbit
+    #     return amount_str
+    #
+    # def get_granted_amount(self) -> str:
+    #     """
+    #     Get requested amount from section
+    #     :return: float, requested amount
+    #     """
+    #     amount_str = ""
+    #     iline, line, match, rightbit = self.summary_section.get_tag_candidates_lines(["accordee - duree",
+    #                                                                                   "accordee",
+    #                                                                                   "accorde",
+    #                                                                                   "accordada"])
+    #     if iline >= 0:
+    #         amount_str = rightbit
+    #     return amount_str
+    #
+    # def get_company_name(self) -> str:
+    #     """
+    #     Get company name from section
+    #     :return: str, company name
+    #     """
+    #     name_str = ""
+    #     iline, line, match, rightbit = self.identity_section.get_tag_candidates_lines(["Nom",
+    #                                                                                    "Raison sociale"])
+    #     if iline >= 0:
+    #         name_str = rightbit
+    #     return name_str
 
 
 class CreditDocumentCollector(doc.DocumentCollector):
@@ -186,8 +184,8 @@ class CreditDocumentCollector(doc.DocumentCollector):
                 fullpath = os.path.join(self._path, file)
                 doct = CreditDocument(self._path, file)
                 doct.locate_sections()
-                self._documents.loc[file, "Requested amount"] = doct.get_requested_amount()
-                self._documents.loc[file, "Granted amount"] = doct.get_granted_amount()
+                self._documents.loc[file, "Nb pages"] = doct.nb_pages
+                self._documents.loc[file, "Nb sections"] = len(doct.sections)
         pass
 
     def write_doc_stats(self, name: str):

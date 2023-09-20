@@ -76,6 +76,28 @@ class DocumentWithSections(object):
             self._pages_text[page_number] = page_text
         return page_text
 
+    def locate_field_in_section(self,
+                                section_name: str,
+                                field_name: str
+                                ) -> str:
+        """
+        Get tag in section line
+        :param section_name:
+        :param field_name:  name of the field to look for
+        :return:
+        """
+        tag_str = ""
+        section: DocumentSection = self._sections.get(section_name, None)
+        if section is not None:
+            if field_name in section.fields.keys():
+                candidate_tags = section.fields.get(field_name, None)
+                if candidate_tags is not None:
+                    iline, line, match, field = section.get_tag_candidates_lines(tags=candidate_tags,
+                                                                                 ending_tags=section.field_tags)
+                    if iline >= 0:
+                        tag_str = field
+        return tag_str
+
     def find_tag_in_page(self,
                          tag: str,
                          page_number: int,
@@ -141,7 +163,7 @@ class DocumentWithSections(object):
         :return: modifies each section in the sections list
         """
         for section in self.sections:
-            section.locate_in_document(self)
+            section.locate_section_in_document(self)
 
     def get_full_text(self,
                       start_page: int,
@@ -227,6 +249,8 @@ class DocumentSection(object):
         self._end_tag_position = -1
         self._start_tag_line_number = -1
         self._start_tag_position_in_line = -1
+        self._fields = {}
+        self._field_tags = []
 
     @property
     def full_text(self):
@@ -269,10 +293,28 @@ class DocumentSection(object):
         return (self._start_page >= 0
                 and self._start_tag_position >= 0)
 
-    def locate_in_document(self,
-                           d: DocumentWithSections,
-                           min_page=0,
-                           max_page=1000000):
+    @property
+    def fields(self):
+        return self._fields
+
+    @property
+    def field_tags(self):
+        return self._field_tags
+
+    def declare_field(self, name: str, tags: List[str]):
+        """
+        Declare a tag that can be used to delimitate a fieldœ
+        :param name:    name of the field
+        :param tags:    list of tags that can be used to delimitate the field
+        :return: None. Self attributes are updated
+        """
+        self._fields[name] = tags
+        self._field_tags += tags
+
+    def locate_section_in_document(self,
+                                   d: DocumentWithSections,
+                                   min_page=0,
+                                   max_page=1000000):
         """
         Locate section in document from start and end tags
         :param min_page: first page to look for tags in
@@ -282,7 +324,9 @@ class DocumentSection(object):
         """
         # look for the first tag in the starting list matching the document
         for start_tag in self._starttaglist:
-            start_tag_tuple = d.find_tag_in_document(start_tag, min_page=min_page, max_page=max_page)
+            start_tag_tuple = d.find_tag_in_document(start_tag,
+                                                     min_page=min_page,
+                                                     max_page=max_page)
             if start_tag_tuple[1] >= 0:
                 (self._start_tag,
                  self._start_page,
@@ -293,7 +337,9 @@ class DocumentSection(object):
         # look for the first tag in the starting list matching the document
         # The purpose is to delimitate the section starting with the first tag
         for end_tag in self._endtaglist:
-            end_tag_tuple = d.find_tag_in_document(end_tag, min_page=self._start_page, max_page=max_page)
+            end_tag_tuple = d.find_tag_in_document(end_tag,
+                                                   min_page=self._start_page,
+                                                   max_page=max_page)
             if end_tag_tuple[1] >= 0:
                 (self._end_tag,
                  self._end_page,
@@ -311,15 +357,19 @@ class DocumentSection(object):
                                                        self._end_page,
                                                        self._end_tag_position)
 
-    def get_tag_line(self,
-                     tag: str,
-                     space_sensitive=False,
-                     max_space_number=1) -> Tuple[int, int, str, str, str]:
+    def locate_tag(self,
+                   tag: str,
+                   ending_tags: list = None,
+                   space_sensitive=False,
+                   max_space_number=1,
+                   split_lines_by_cr=False) -> Tuple[int, int, str, str, str]:
         """
         Get the first line in full text containing tag
-        :param space_sensitive:
-        :param max_space_number:
+        :param split_lines_by_cr: wether to split lines by carriage returns
+        :param space_sensitive: bool, if False, looks for tag with possible spaces in between
+        :param max_space_number: maximum number of spaces between characters of tag
         :param tag: str, tag to get line from
+        :param ending_tags: list of str, tags that can end the line
         :return: index of first line containing tag,
                  index of continuation line in case the tag is split by \n,
                  bit of line starting with match,
@@ -327,7 +377,7 @@ class DocumentSection(object):
                  right section of line following match as str
         """
         if not self.is_located:
-            self.locate_in_document(self._document)
+            self.locate_section_in_document(self._document)
         if self._full_text == "":
             self.get_full_section_text()
         ntag = tu.normalize(tag)
@@ -341,7 +391,7 @@ class DocumentSection(object):
         if position < 0:
             return -1, -1, "", "", ""
         # cut the text into lines along carriage returns
-        lines = ntext.split("\n")
+        lines = ntext.split("\n") if split_lines_by_cr else [ntext]
         for iline, line in enumerate(lines):
             inextline = iline + 1
             # find start position and effective match of ntag
@@ -351,7 +401,7 @@ class DocumentSection(object):
                                                 max_spaces_number=max_space_number)
             # if tag is found up to spaces
             if position >= 0:
-                return iline, iline, line[position:-1], match, tu.right_bit_after_tag(line, match)
+                return iline, iline, line[position:-1], match, tu.field_between_tags(line, match, ending_tags)
             # if tag is not found in a line that could contain it:
             elif inextline < len(lines):
                 line += lines[inextline]
@@ -360,19 +410,22 @@ class DocumentSection(object):
                                                     space_sensitive=space_sensitive,
                                                     max_spaces_number=max_space_number)
                 if position >= 0:
-                    right_bit = tu.right_bit_after_tag(line, match)
+                    field = tu.field_between_tags(line, match)
                     # if the string bit following the match in current line is empty,
                     # and if end has not been reached, then look for next string
-                    if len(tu.compactify(right_bit)) == 0 and inextline < len(lines) - 1:
+                    if len(tu.compactify(field)) == 0 and inextline < len(lines) - 1:
                         inextline += 1
                         line += lines[inextline]
-                    return iline, inextline, line[position:-1], match, tu.right_bit_after_tag(line, match)
+                    return iline, inextline, line[position:-1], match, tu.field_between_tags(line, match)
 
         return -1, -1, "", "", ""
 
-    def get_tag_candidates_lines(self, tags: List[str]) -> Tuple[int, str, str, str]:
+    def get_tag_candidates_lines(self,
+                                 tags: List[str],
+                                 ending_tags: List[str] = None) -> Tuple[int, str, str, str]:
         """
         returns the coordinates of the first tag from a given list found in the section
+        :param ending_tags:
         :param tags: list of str, tags to look for
         :return: the position of first matching string found,
                  the mathing string
@@ -381,9 +434,11 @@ class DocumentSection(object):
         """
         iline = -1
         for tag in tags:
-            iline, _, line, match, rightbit = self.get_tag_line(tag)
+            if ending_tags is None:
+                ending_tags = self._field_tags
+            iline, _, line, match, field = self.locate_tag(tag, ending_tags=ending_tags)
             if iline >= 0:
-                return iline, line, match, rightbit
+                return iline, line, match, field
         return iline, "", "", ""
 
     def get_start_tag_line(self) -> Tuple[int, int, str, str, str]:
@@ -394,7 +449,7 @@ class DocumentSection(object):
                  full start tag line,
                  line bit following tag
         """
-        return self.get_tag_line(self._start_tag)
+        return self.locate_tag(self._start_tag)
 
     def read_tables_in_section(self,
                                use_tabula: bool = True):

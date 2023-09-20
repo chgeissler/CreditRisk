@@ -25,6 +25,7 @@ class Company(object):
         self._address: str = ""
         self._activity_description: str = ""
         self._bank_activity: str = ""
+        self._legal_form: str = ""
         self._capital: Union[float, str] = 0.0
         self._effectif: Union[int, str] = 0
         self._document = None
@@ -71,30 +72,29 @@ class Company(object):
         """
         cdoc = self._document
         self.detect_document_language()
-        self._identifier = cdoc.get_tag_in_section_line("Identity",
-                                                        ["siren", "identifiant"])
-        self._vat_number = cdoc.get_tag_in_section_line("Identity",
-                                                        ["TVA"])
-        self._creation_date = cdoc.get_tag_in_section_line("Identity",
-                                                           ["Date de création"])
-        self._full_name = cdoc.get_tag_in_section_line("Identity",
-                                                       ["Nom", "Raison sociale"])
-        self._ape_code = cdoc.get_tag_in_section_line("Identity",
-                                                      ["Code APE"])
-        self._zip_code = cdoc.get_tag_in_section_line("Identity",
-                                                      ["Code postal"])
-        self._city = cdoc.get_tag_in_section_line("Identity",
-                                                  ["Ville"])
-        self._address = cdoc.get_tag_in_section_line("Identity",
-                                                     ["Adresse"])
-        self._activity_description = cdoc.get_tag_in_section_line("Identity",
-                                                                  ["Activité"])
-        self._bank_activity = cdoc.get_tag_in_section_line("Identity",
-                                                           ["Activité bancaire"])
-        self._capital = cdoc.get_tag_in_section_line("Identity",
-                                                     ["Capital social", "Capital"])
-        self._effectif = cdoc.get_tag_in_section_line("Identity",
-                                                      ["Effectif"])
+        self._identifier = cdoc.locate_field_in_section("Identity", "Identifier")
+        self._vat_number = cdoc.locate_field_in_section("Identity", "VatNumber")
+        self._creation_date = cdoc.locate_field_in_section("Identity", "CreationDate")
+        self._full_name = cdoc.locate_field_in_section("Identity",
+                                                       "FullName")
+        self._ape_code = cdoc.locate_field_in_section("Identity",
+                                                      "IndustryCode",)
+        self._zip_code = cdoc.locate_field_in_section("Identity",
+                                                      "ZipCode",)
+        self._city = cdoc.locate_field_in_section("Identity",
+                                                  "City")
+        self._address = cdoc.locate_field_in_section("Identity",
+                                                     "Address")
+        self._activity_description = cdoc.locate_field_in_section("Identity",
+                                                                  "ActivityDescription")
+        self._bank_activity = cdoc.locate_field_in_section("Identity",
+                                                           "BankActivity")
+        self._capital = cdoc.locate_field_in_section("Identity",
+                                                     "Capital")
+        self._legal_form = cdoc.locate_field_in_section("Identity",
+                                                        "LegalForm")
+        self._effectif = cdoc.locate_field_in_section("Identity",
+                                                      "NbEmployees")
 
     def parse(self):
         """
@@ -111,7 +111,7 @@ class Company(object):
                 bug_met = True
         if type(self._creation_date) == str:
             try:
-                self._creation_date = datetime.datetime.strptime(self._creation_date, "%d/%m/%Y").date()
+                self._creation_date = datetime.datetime.strptime(str(self._creation_date), "%d/%m/%Y").date()
             except ValueError:
                 bug_met = True
         if self._full_name != "":
@@ -151,24 +151,24 @@ class Company(object):
         :param df: database
         :return:
         """
-        idx = self._document.name if self._document is not None else self._identifier
-        if idx == "":
+        doc_idx = self._document.name if self._document is not None else self._identifier
+        if doc_idx == "":
             return df
-        df.loc[idx, "Language"] = self._document.language if self._document is not None else ""
-        df.loc[idx, "NbPages"] = self._document.nb_pages if self._document is not None else 0
-        df.loc[idx, "Identifier"] = self._identifier
-        df.loc[idx, "VATNumber"] = self._vat_number
-        df.loc[idx, "CreationDate"] = self._creation_date
-        df.loc[idx, "FullName"] = self._full_name
-        df.loc[idx, "APECode"] = self._ape_code
-        df.loc[idx, "ZipCode"] = self._zip_code
-        df.loc[idx, "City"] = self._city
-        df.loc[idx, "Address"] = self._address
-        df.loc[idx, "ActivityDescription"] = self._activity_description
-        df.loc[idx, "BankActivity"] = self._bank_activity
-        df.loc[idx, "Capital"] = self._capital
-        df.loc[idx, "Effectif"] = self._effectif
-        df.loc[idx, "IsParsed"] = 1 if self._is_parsed else 0
+        df.loc[doc_idx, "Language"] = self._document.language if self._document is not None else ""
+        df.loc[doc_idx, "NbPages"] = self._document.nb_pages if self._document is not None else 0
+        df.loc[doc_idx, "Identifier"] = self._identifier
+        df.loc[doc_idx, "VATNumber"] = self._vat_number
+        df.loc[doc_idx, "CreationDate"] = self._creation_date
+        df.loc[doc_idx, "FullName"] = self._full_name
+        df.loc[doc_idx, "APECode"] = self._ape_code
+        df.loc[doc_idx, "ZipCode"] = self._zip_code
+        df.loc[doc_idx, "City"] = self._city
+        df.loc[doc_idx, "Address"] = self._address
+        df.loc[doc_idx, "ActivityDescription"] = self._activity_description
+        df.loc[doc_idx, "BankActivity"] = self._bank_activity
+        df.loc[doc_idx, "Capital"] = self._capital
+        df.loc[doc_idx, "Effectif"] = self._effectif
+        df.loc[doc_idx, "IsParsed"] = 1 if self._is_parsed else 0
         return df
 
 
@@ -178,10 +178,10 @@ class CompanyFinancials(object):
     """
 
     def __init__(self,
-                 company: Company,
+                 comp: Company,
                  date: datetime.date):
         self._date = date
-        self._company = company
+        self._company = comp
         self._balance_sheet: pd.DataFrame = pd.DataFrame(columns=["Current", "Y-1", "Y-2"],
                                                          index=["Sales",
                                                                 "ExportSales",
@@ -234,10 +234,10 @@ class Scoring(object):
     """
 
     def __init__(self,
-                 company: Company,
+                 comp: Company,
                  date: datetime.date):
         self._date = date
-        self._company = company
+        self._company = comp
         self._score: int = 0
         self._scoring_comment: str = ""
 
@@ -248,12 +248,12 @@ class CreditRequest(object):
     """
 
     def __init__(self,
-                 company: Company,
+                 comp: Company,
                  date: datetime.date,
                  requested_amount: float,
                  granted_amount: float):
         self._request_date = date
-        self._company = company
+        self._company = comp
         self._requested_amount = requested_amount
         self._granted_amount = granted_amount
 
@@ -274,12 +274,13 @@ class CreditCollector(object):
     def collect_companies(self,
                           do_parse: bool = True,
                           verbose: bool = False,
-                          doclist=[],
+                          doclist: list = None,
                           istart: int = 0,
                           iend: int = 1000
                           ) -> pd.DataFrame:
         """
 
+        :type doclist: list
         :param doclist:
         :param do_parse:
         :param verbose:
@@ -287,6 +288,8 @@ class CreditCollector(object):
         :param iend:
         :return:
         """
+        if doclist is None:
+            doclist = []
         if not doclist:
             files = os.listdir(self._docpath)
         else:
@@ -296,13 +299,13 @@ class CreditCollector(object):
                 if verbose:
                     print(f"Collecting document {file}")
                 docu = cd.CreditDocument(path=self._docpath, name=file)
-                company = Company()
-                company.link_to_document(docu)
-                company.detect_document_language()
-                company.fill_text_from_credit_document()
+                a_comp = Company()
+                a_comp.link_to_document(docu)
+                a_comp.detect_document_language()
+                a_comp.fill_text_from_credit_document()
                 if do_parse:
-                    company.parse()
-                company.insert(self._company_table)
+                    a_comp.parse()
+                a_comp.insert(self._company_table)
         return self._company_table
 
     def write_companies(self, path: str, name: str):
@@ -342,7 +345,7 @@ if __name__ == "__main__":
     data_path = "/home/cgeissler/local_data/CCRCredit/FichesCredit"
     out_path = "/home/cgeissler/local_data/CCRCredit/Tables"
     debug_mode = False
-    outfilename = "companies_2.csv"
+    outfilename = "companies_3.csv"
     if not debug_mode:
         collector = CreditCollector(data_path)
         collector.collect_companies(verbose=True, istart=0, iend=100)
@@ -352,7 +355,7 @@ if __name__ == "__main__":
         for idx in companies.index:
             if companies.loc[idx, "IsParsed"] == 0:
                 print(f"Re-parsing company {idx}")
-                cred_doc = cd.CreditDocument(path = data_path, name = idx)
+                cred_doc = cd.CreditDocument(path=data_path, name=idx)
                 company = Company()
                 company.link_to_document(cred_doc)
                 company.fill_text_from_credit_document()
