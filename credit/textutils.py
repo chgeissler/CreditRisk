@@ -157,3 +157,12 @@ def field_between_tags(line: str,
                 break
     field = field.lstrip().rstrip()
     return field
+
+
+def search_date(text: str) -> str:
+    field = re.search('\\d{2}[-/]\\d{2}[-/]\\d{4}', text)
+    if field is None:
+        return ""
+    else:
+        istart, iend = field.span()
+        return field.string[istart:iend]

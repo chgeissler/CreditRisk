@@ -33,9 +33,11 @@ class CreditDocument(doc.DocumentWithSections):
         self._identity_section.declare_field(name="Address", tags=["Adresse"])
         self._identity_section.declare_field(name="City", tags=["Ville"])
         self._identity_section.declare_field(name="BankActivity", tags=["Activité bancaire"])
-        self._identity_section.declare_field(name="Capital", tags=["Capital"])
+        self._identity_section.declare_field(name="Capital", tags=["Capital social", "Capital"])
         self._identity_section.declare_field(name="LegalForm", tags=["Forme juridique"])
         self._identity_section.declare_field(name="NbEmployees", tags=["Effectif"])
+        self._identity_section.declare_field(name="Director", tags=["Dirigeant"])
+        self._identity_section.declare_field(name="BusinessAssets", tags=["Fonds de commerce"])
 
         self._bank_section = doc.DocumentSection(self,
                                                  starttaglist=["informations bancaires"],

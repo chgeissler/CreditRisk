@@ -1,5 +1,6 @@
 import datetime
 import os
+import re
 
 import credit_document as cd
 import textutils as tu
@@ -30,6 +31,7 @@ class Company(object):
         self._effectif: Union[int, str] = 0
         self._document = None
         self._is_parsed = False
+        self._bug_report: str = ""
 
     @property
     def identifier(self):
@@ -102,18 +104,25 @@ class Company(object):
         :return:
         """
         bug_met = False
+        self._bug_report = ""
         self._identifier = self._identifier.rstrip().lstrip()
         if len(self._identifier) != 9:
             bug_met = True
+            self._bug_report += f"Identifiant {self._identifier} invalide.\n"
         if self._vat_number != "":
-            self._vat_number = tu.compactify(self._vat_number)
-            if len(self._vat_number) != 13:
+            field = re.search('FR\\d{11}', self._vat_number)
+            if field is None:
                 bug_met = True
+                self._bug_report += f"TVA {self._vat_number} invalide.\n"
+            else:
+                self._vat_number = field.string
         if type(self._creation_date) == str:
-            try:
-                self._creation_date = datetime.datetime.strptime(str(self._creation_date), "%d/%m/%Y").date()
-            except ValueError:
+            field = tu.search_date(self._creation_date)
+            if field == "":
                 bug_met = True
+                self._bug_report += f"Date {self._creation_date} invalide.\n"
+            else:
+                self._creation_date = datetime.datetime.strptime(field, "%d/%m/%Y").date()
         if self._full_name != "":
             self._full_name = self._full_name.rstrip().lstrip()
         if self._ape_code != "":
@@ -169,6 +178,7 @@ class Company(object):
         df.loc[doc_idx, "Capital"] = self._capital
         df.loc[doc_idx, "Effectif"] = self._effectif
         df.loc[doc_idx, "IsParsed"] = 1 if self._is_parsed else 0
+        df.loc[doc_idx, "BugReport"] = self._bug_report
         return df
 
 
