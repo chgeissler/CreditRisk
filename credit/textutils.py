@@ -50,8 +50,6 @@ def normalize(text: Optional[str],
         return res
 
 
-
-
 def currency_to_float(text: str, curr: str) -> float:
     """
     Convert a currency string to a float

@@ -105,17 +105,21 @@ class Company(object):
         """
         bug_met = False
         self._bug_report = ""
+        # tr
         self._identifier = self._identifier.rstrip().lstrip()
         if len(self._identifier) != 9:
             bug_met = True
             self._bug_report += f"Identifiant {self._identifier} invalide.\n"
-        if self._vat_number != "":
-            field = re.search('FR\\d{11}', self._vat_number)
-            if field is None:
-                bug_met = True
-                self._bug_report += f"TVA {self._vat_number} invalide.\n"
-            else:
-                self._vat_number = field.string
+        # traitement de la TVA
+        txt = tu.compactify(self._vat_number).lower()
+        field = re.search('fr\\d{11}', txt)
+        if field is None:
+            bug_met = True
+            self._bug_report += f"TVA {self._vat_number} invalide.\n"
+        else:
+            istart, iend = field.span()
+            self._vat_number = field.string[istart:iend]
+        # traitement de la date de création
         if type(self._creation_date) == str:
             field = tu.search_date(self._creation_date)
             if field == "":
