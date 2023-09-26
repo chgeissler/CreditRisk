@@ -121,7 +121,11 @@ class Company(object):
             self._vat_number = field.string[istart:iend]
         # traitement de la date de création
         if type(self._creation_date) == str:
-            field = tu.search_date(self._creation_date)
+            try:
+                field = tu.search_date(self._creation_date)
+            except ValueError:
+                bug_met = True
+                self._bug_report += f"Date {self._creation_date} invalide.\n"
             if field == "":
                 bug_met = True
                 self._bug_report += f"Date {self._creation_date} invalide.\n"
@@ -241,6 +245,12 @@ class CompanyFinancials(object):
                                                                    "NbUnpaidBills"])
         self._qualitative_forecasts: str = ""
 
+    def fill_text_from_credit_document(self):
+        """
+        Fill company financials from credit document
+        :return: modifies company attributes in place
+        """
+
 
 class Scoring(object):
     """
@@ -261,15 +271,25 @@ class CreditRequest(object):
     This class represents a credit request issued by a company at a given date
     """
 
-    def __init__(self,
-                 comp: Company,
-                 date: datetime.date,
-                 requested_amount: float,
-                 granted_amount: float):
-        self._request_date = date
-        self._company = comp
-        self._requested_amount = requested_amount
-        self._granted_amount = granted_amount
+    def __init__(self):
+        self._request_date = datetime.date = datetime.date(1900, 1, 1)
+        self._company: Company = None
+        self._requested_amount: float = 0
+        self._granted_amount: float = 0
+        self._document: cd.CreditDocument = None
+        self._is_parsed = False
+        self._bug_report: str = ""
+
+    def link_to_company(self,
+                        document: cd.CreditDocument):
+        """
+        Link credit request to document
+        :param document:
+        :return:
+        """
+        self._document = document
+        self._is_parsed = False
+
 
 
 class CreditCollector(object):
@@ -359,10 +379,10 @@ if __name__ == "__main__":
     data_path = "/home/cgeissler/local_data/CCRCredit/FichesCredit"
     out_path = "/home/cgeissler/local_data/CCRCredit/Tables"
     debug_mode = False
-    outfilename = "companies_3.csv"
+    outfilename = "companies_5.csv"
     if not debug_mode:
         collector = CreditCollector(data_path)
-        collector.collect_companies(verbose=True, istart=0, iend=100)
+        collector.collect_companies(verbose=True, istart=0, iend=10000)
         collector.write_companies(out_path, outfilename)
     else:
         companies = pd.read_csv(os.path.join(out_path, outfilename), index_col=0)

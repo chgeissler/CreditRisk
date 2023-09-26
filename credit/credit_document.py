@@ -21,23 +21,9 @@ class CreditDocument(doc.DocumentWithSections):
 
         self._identity_section = doc.DocumentSection(document=self,
                                                      starttaglist=["Identité"],
-                                                     endtaglist=["Activité"])
+                                                     endtaglist=["Activité - Modèle économique", "Activité"])
         self.add_section(secname="Identity", sec=self._identity_section)
-        self._identity_section.declare_field(name="Identifier", tags=["Siren", "Identifiant"])
-        self._identity_section.declare_field(name="VatNumber", tags=["N° TVA", "TVA"])
-        self._identity_section.declare_field(name="CreationDate", tags=["Date de création"])
-        self._identity_section.declare_field(name="ActivityDescription", tags=["Activité"])
-        self._identity_section.declare_field(name="FullName", tags=["Nom", "Raison sociale"])
-        self._identity_section.declare_field(name="IndustryCode", tags=["Code APE"])
-        self._identity_section.declare_field(name="ZipCode", tags=["Code postal"])
-        self._identity_section.declare_field(name="Address", tags=["Adresse"])
-        self._identity_section.declare_field(name="City", tags=["Ville"])
-        self._identity_section.declare_field(name="BankActivity", tags=["Activité bancaire"])
-        self._identity_section.declare_field(name="Capital", tags=["Capital social", "Capital"])
-        self._identity_section.declare_field(name="LegalForm", tags=["Forme juridique"])
-        self._identity_section.declare_field(name="NbEmployees", tags=["Effectif"])
-        self._identity_section.declare_field(name="Director", tags=["Dirigeant"])
-        self._identity_section.declare_field(name="BusinessAssets", tags=["Fonds de commerce"])
+        self.identity_section_declare_fields()
 
         self._bank_section = doc.DocumentSection(self,
                                                  starttaglist=["informations bancaires"],
@@ -75,6 +61,44 @@ class CreditDocument(doc.DocumentWithSections):
                                                              endtaglist=["Votre expérience de paiement"])
 
         self.add_section(secname="BillingAnalysis", sec=self._billing_analysis_section)
+
+    def summary_section_declare_fields(self):
+        """
+        Declare fields in Summary section
+        :return:
+        """
+        self._summary_section.declare_field(name="RequestedAmount", tags=["demandee - duree",
+                                                                          "demandee",
+                                                                          "demande",
+                                                                          "pedida"])
+
+
+    def identity_section_declare_fields(self):
+        """
+        Declare fields in Identity section
+        :return:
+        """
+        self._identity_section.declare_field(name="Identifier", tags=["Siren", "Identifiant"])
+        self._identity_section.declare_field(name="VatNumber", tags=["N° TVA", "TVA"])
+        self._identity_section.declare_field(name="CreationDate", tags=["Date de création"])
+        self._identity_section.declare_field(name="ActivityDescription", tags=["Activité"])
+        self._identity_section.declare_field(name="FullName", tags=["Nom", "Raison sociale"])
+        self._identity_section.declare_field(name="IndustryCode", tags=["Code APE"])
+        self._identity_section.declare_field(name="ZipCode", tags=["Code postal"])
+        self._identity_section.declare_field(name="Address", tags=["Adresse"])
+        self._identity_section.declare_field(name="City", tags=["Ville"])
+        self._identity_section.declare_field(name="BankActivity", tags=["Activité bancaire"])
+        self._identity_section.declare_field(name="Capital", tags=["Capital social", "Capital"])
+        self._identity_section.declare_field(name="LegalForm", tags=["Forme juridique"])
+        self._identity_section.declare_field(name="NbEmployees", tags=["Effectif"])
+        self._identity_section.declare_field(name="Director", tags=["Dirigeant"])
+        self._identity_section.declare_field(name="BusinessAssets", tags=["Fonds de commerce"])
+        self._identity_section.declare_field(name="LegalProceedings", tags=["Procédures judiciaires",
+                                                                            "Poursuites judiciaires"])
+
+    def bank_section_declare_fields(self):
+        self._bank_section.declare_field(name="BankName", tags=["Banques"])
+        self._bank_section.declare_field(name="BankName", tags=["Concours bancaires"])
 
     @property
     def summary_section(self):
