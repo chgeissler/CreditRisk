@@ -71,7 +71,13 @@ class CreditDocument(doc.DocumentWithSections):
                                                                           "demandee",
                                                                           "demande",
                                                                           "pedida"])
-
+        self._summary_section.declare_field(name="GrantedAmount", tags=["accordee - duree",
+                                                                        "accordee",
+                                                                        "accorde",
+                                                                        "accordada"])
+        self._summary_section.declare_field(name="RequestDate", tags=["Date"])
+        self._summary_section.declare_field(name="StartDate", tags=["Date debut"])
+        self._summary_section.declare_field(name="EndDate", tags=["Date fin"])
 
     def identity_section_declare_fields(self):
         """

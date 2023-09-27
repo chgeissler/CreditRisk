@@ -122,7 +122,7 @@ class Company(object):
         # traitement de la date de création
         if type(self._creation_date) == str:
             try:
-                field = tu.search_date(self._creation_date)
+                field = tu.search_date(str(self._creation_date).replace("-", "/"))
             except ValueError:
                 bug_met = True
                 self._bug_report += f"Date {self._creation_date} invalide.\n"
@@ -250,6 +250,7 @@ class CompanyFinancials(object):
         Fill company financials from credit document
         :return: modifies company attributes in place
         """
+        pass
 
 
 class Scoring(object):
@@ -265,30 +266,6 @@ class Scoring(object):
         self._score: int = 0
         self._scoring_comment: str = ""
 
-
-class CreditRequest(object):
-    """
-    This class represents a credit request issued by a company at a given date
-    """
-
-    def __init__(self):
-        self._request_date = datetime.date = datetime.date(1900, 1, 1)
-        self._company: Company = None
-        self._requested_amount: float = 0
-        self._granted_amount: float = 0
-        self._document: cd.CreditDocument = None
-        self._is_parsed = False
-        self._bug_report: str = ""
-
-    def link_to_company(self,
-                        document: cd.CreditDocument):
-        """
-        Link credit request to document
-        :param document:
-        :return:
-        """
-        self._document = document
-        self._is_parsed = False
 
 
 
