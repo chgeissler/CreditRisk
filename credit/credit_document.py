@@ -15,8 +15,10 @@ class CreditDocument(doc.DocumentWithSections):
         super().__init__(path=path, name=name)
         self._language = ""
         self._summary_section = doc.DocumentSection(self,
-                                                    starttaglist=["Société destinataire"],
+                                                    starttaglist=["Etude", "Etude client", "Siren"],
                                                     endtaglist=["Identité"])
+        self.summary_section_declare_fields()
+
         self.add_section(secname="Summary", sec=self._summary_section)
 
         self._identity_section = doc.DocumentSection(document=self,
@@ -88,7 +90,7 @@ class CreditDocument(doc.DocumentWithSections):
         self._identity_section.declare_field(name="VatNumber", tags=["N° TVA", "TVA"])
         self._identity_section.declare_field(name="CreationDate", tags=["Date de création"])
         self._identity_section.declare_field(name="ActivityDescription", tags=["Activité"])
-        self._identity_section.declare_field(name="FullName", tags=["Nom", "Raison sociale"])
+        self._identity_section.declare_field(name="FullName", tags=["Raison sociale", "Nom"])
         self._identity_section.declare_field(name="IndustryCode", tags=["Code APE"])
         self._identity_section.declare_field(name="ZipCode", tags=["Code postal"])
         self._identity_section.declare_field(name="Address", tags=["Adresse"])

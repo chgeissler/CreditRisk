@@ -37,6 +37,10 @@ class Company(object):
     def identifier(self):
         return self._identifier
 
+    @property
+    def full_name(self):
+        return self._full_name
+
     def link_to_document(self,
                          document: cd.CreditDocument):
         """
@@ -267,108 +271,3 @@ class Scoring(object):
         self._scoring_comment: str = ""
 
 
-
-
-class CreditCollector(object):
-    """
-    This class collects credit requests from a given directory
-    """
-
-    def __init__(self,
-                 docpath: str):
-        self._docpath = docpath
-        self._company_table = pd.DataFrame()
-        self._financials_table = pd.DataFrame()
-        self._scoring_table = pd.DataFrame()
-        self._credit_request_table = pd.DataFrame()
-
-    def collect_companies(self,
-                          do_parse: bool = True,
-                          verbose: bool = False,
-                          doclist: list = None,
-                          istart: int = 0,
-                          iend: int = 1000
-                          ) -> pd.DataFrame:
-        """
-
-        :type doclist: list
-        :param doclist:
-        :param do_parse:
-        :param verbose:
-        :param istart:
-        :param iend:
-        :return:
-        """
-        if doclist is None:
-            doclist = []
-        if not doclist:
-            files = os.listdir(self._docpath)
-        else:
-            files = doclist
-        for ifile, file in enumerate(files):
-            if doclist or istart <= ifile <= iend:
-                if verbose:
-                    print(f"Collecting document {file}")
-                docu = cd.CreditDocument(path=self._docpath, name=file)
-                a_comp = Company()
-                a_comp.link_to_document(docu)
-                a_comp.detect_document_language()
-                a_comp.fill_text_from_credit_document()
-                if do_parse:
-                    a_comp.parse()
-                a_comp.insert(self._company_table)
-        return self._company_table
-
-    def write_companies(self, path: str, name: str):
-        """
-        Write companies table to file
-        :param path: path
-        :param name: name
-        :return:
-        """
-        self._company_table.to_csv(os.path.join(path, name))
-        pass
-
-    def collect_credit_requests(self,
-                                verbose: bool = False,
-                                istart: int = 0,
-                                iend: int = 1000):
-        """
-        Collect credit requests from a given directory
-        :param verbose: if True, print info
-        :param istart: start index
-        :param iend: end index
-        :return:
-        """
-        pass
-
-    def write_credit_requests(self,
-                              output_file_path: str):
-        """
-        Write credit requests to file
-        :param output_file_path: output file path
-        :return:
-        """
-        pass
-
-
-if __name__ == "__main__":
-    data_path = "/home/cgeissler/local_data/CCRCredit/FichesCredit"
-    out_path = "/home/cgeissler/local_data/CCRCredit/Tables"
-    debug_mode = False
-    outfilename = "companies_5.csv"
-    if not debug_mode:
-        collector = CreditCollector(data_path)
-        collector.collect_companies(verbose=True, istart=0, iend=10000)
-        collector.write_companies(out_path, outfilename)
-    else:
-        companies = pd.read_csv(os.path.join(out_path, outfilename), index_col=0)
-        for idx in companies.index:
-            if companies.loc[idx, "IsParsed"] == 0:
-                print(f"Re-parsing company {idx}")
-                cred_doc = cd.CreditDocument(path=data_path, name=idx)
-                company = Company()
-                company.link_to_document(cred_doc)
-                company.fill_text_from_credit_document()
-                company.parse()
-    pass

@@ -59,8 +59,12 @@ def currency_to_float(text: str, curr: str) -> float:
     """
     coeff = 1.0
     amount = 0
+    if len(text) == 0:
+        return np.nan
     text = text.replace(" ", "").lower()
     text = text.split(curr)[0]
+    if len(text) == 0:
+        return np.nan
     if text[-1] == "k":
         coeff = 1000.0
         text = text[:-1]
