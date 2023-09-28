@@ -2,12 +2,12 @@ import datetime
 import os
 import re
 
-import credit_document as cd
-import textutils as tu
 import numpy as np
 import pandas as pd
 from typing import Union
-from company import Company
+from . import credit_document as cd
+from . import textutils as tu
+from . import company as cp
 
 
 class CreditRequest(object):
@@ -18,19 +18,24 @@ class CreditRequest(object):
     def __init__(self, req_id: str):
         self._id: str = req_id
         self._request_date: datetime.date = datetime.date(1900, 1, 1)
-        self._company: Union[Company, None] = None
+        self._company: Union[cp.Company, None] = None
         self._requested_amount: float = 0
         self._granted_amount: float = 0
         self._start_date: datetime.date = datetime.date(1900, 1, 1)
         self._end_date: datetime.date = datetime.date(1900, 1, 1)
         self._duration: float = 0
         self._document: Union[cd.CreditDocument, None] = None
-        self._is_parsed = False
+        self._is_parsed = True
+        self._unmatched_fields = 0
         self._bug_report: str = ""
+
+    @property
+    def is_parsed(self):
+        return self._is_parsed
 
     def link_to_company(self,
                         document: cd.CreditDocument,
-                        cp: Company):
+                        cp: cp.Company):
         """
         Link credit request to document
         :param document: credit document containing the request
@@ -66,10 +71,12 @@ class CreditRequest(object):
             try:
                 field = tu.search_date(str(self._request_date).replace("-", "/"))
             except ValueError:
-                bug_met = True
+                self._unmatched_fields += 1
+                self._is_parsed = False
                 self._bug_report += f"Date {self._request_date} invalide.\n"
             if field == "":
-                bug_met = True
+                self._unmatched_fields += 1
+                self._is_parsed = False
                 self._bug_report += f"Date {self._request_date} invalide.\n"
             else:
                 self._request_date = datetime.datetime.strptime(field, "%d/%m/%Y").date()
@@ -78,7 +85,8 @@ class CreditRequest(object):
             try:
                 self._requested_amount = tu.currency_to_float(str(self._requested_amount), "eur")
             except ValueError:
-                bug_met = True
+                self._unmatched_fields += 1
+                self._is_parsed = False
                 self._requested_amount = np.nan
             if np.isnan(self._requested_amount):
                 bug_met = True
@@ -87,7 +95,8 @@ class CreditRequest(object):
             try:
                 self._granted_amount = tu.currency_to_float(str(self._granted_amount), "eur")
             except ValueError:
-                bug_met = True
+                self._unmatched_fields += 1
+                self._is_parsed = False
                 self._granted_amount = np.nan
             if np.isnan(self._granted_amount):
                 bug_met = True
@@ -96,10 +105,12 @@ class CreditRequest(object):
             try:
                 field = tu.search_date(str(self._start_date).replace("-", "/"))
             except ValueError:
-                bug_met = True
+                self._unmatched_fields += 1
+                self._is_parsed = False
                 self._bug_report += f"Date {self._start_date} invalide.\n"
             if field == "":
-                bug_met = True
+                self._unmatched_fields += 1
+                self._is_parsed = False
                 self._bug_report += f"Date {self._start_date} invalide.\n"
             else:
                 self._start_date = datetime.datetime.strptime(field, "%d/%m/%Y").date()
@@ -108,10 +119,12 @@ class CreditRequest(object):
             try:
                 field = tu.search_date(str(self._end_date).replace("-", "/"))
             except ValueError:
-                bug_met = True
+                self._unmatched_fields += 1
+                self._is_parsed = False
                 self._bug_report += f"Date {self._end_date} invalide.\n"
             if field == "":
-                bug_met = True
+                self._unmatched_fields += 1
+                self._is_parsed = False
                 self._bug_report += f"Date {self._end_date} invalide.\n"
             else:
                 self._end_date = datetime.datetime.strptime(field, "%d/%m/%Y").date()
@@ -120,7 +133,7 @@ class CreditRequest(object):
         if type(self._start_date) == datetime.date and type(self._end_date) == datetime.date:
             self._duration = (self._end_date - self._start_date).days / 365.25
 
-        self._is_parsed = True
+
 
     def insert(self, table: pd.DataFrame):
         """

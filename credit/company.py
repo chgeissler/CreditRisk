@@ -2,8 +2,8 @@ import datetime
 import os
 import re
 
-import credit_document as cd
-import textutils as tu
+from . import credit_document as cd
+from . import textutils as tu
 import numpy as np
 import pandas as pd
 from typing import Union
@@ -30,7 +30,8 @@ class Company(object):
         self._capital: Union[float, str] = 0.0
         self._effectif: Union[int, str] = 0
         self._document = None
-        self._is_parsed = False
+        self._unmatched_fields: int = 0
+        self._is_parsed: bool = True
         self._bug_report: str = ""
 
     @property
@@ -40,6 +41,10 @@ class Company(object):
     @property
     def full_name(self):
         return self._full_name
+
+    @property
+    def is_parsed(self):
+        return self._is_parsed
 
     def link_to_document(self,
                          document: cd.CreditDocument):
@@ -112,13 +117,14 @@ class Company(object):
         # tr
         self._identifier = self._identifier.rstrip().lstrip()
         if len(self._identifier) != 9:
-            bug_met = True
+            self._unmatched_fields += 1
+            self._is_parsed = False
             self._bug_report += f"Identifiant {self._identifier} invalide.\n"
         # traitement de la TVA
         txt = tu.compactify(self._vat_number).lower()
         field = re.search('fr\\d{11}', txt)
         if field is None:
-            bug_met = True
+            self._unmatched_fields += 1
             self._bug_report += f"TVA {self._vat_number} invalide.\n"
         else:
             istart, iend = field.span()
@@ -128,10 +134,10 @@ class Company(object):
             try:
                 field = tu.search_date(str(self._creation_date).replace("-", "/"))
             except ValueError:
-                bug_met = True
+                self._unmatched_fields += 1
                 self._bug_report += f"Date {self._creation_date} invalide.\n"
             if field == "":
-                bug_met = True
+                self._unmatched_fields += 1
                 self._bug_report += f"Date {self._creation_date} invalide.\n"
             else:
                 self._creation_date = datetime.datetime.strptime(field, "%d/%m/%Y").date()
@@ -153,18 +159,20 @@ class Company(object):
             try:
                 self._capital = tu.currency_to_float(str(self._capital), "eur")
             except ValueError:
-                bug_met = True
+                self._unmatched_fields += 1
                 self._capital = np.nan
+                self._bug_report += f"Capital {self._capital} invalide.\n"
             if np.isnan(self._capital):
-                bug_met = True
+                self._unmatched_fields += 1
+                self._is_parsed = False
+                self._bug_report += f"Capital non renseigné.\n"
         if self._effectif != "":
             try:
                 self._effectif = int(self._effectif)
             except ValueError:
-                bug_met = True
+                self._unmatched_fields += 1
                 self._effectif = np.nan
-
-        self._is_parsed = not bug_met
+                self._bug_report += f"Effectif {self._effectif} invalide.\n"
 
     def insert(self, df: pd.DataFrame):
         """

@@ -1,10 +1,5 @@
 import os
-
-
-import credit.document as doc
-import camelot
-import pandas as pd
-# import adextractor
+from . import document as doc
 
 
 class CreditDocument(doc.DocumentWithSections):
@@ -78,8 +73,8 @@ class CreditDocument(doc.DocumentWithSections):
                                                                         "accorde",
                                                                         "accordada"])
         self._summary_section.declare_field(name="RequestDate", tags=["Date"])
-        self._summary_section.declare_field(name="StartDate", tags=["Date debut"])
-        self._summary_section.declare_field(name="EndDate", tags=["Date fin"])
+        self._summary_section.declare_field(name="StartDate", tags=["Date debut", "Debut de la garantie"])
+        self._summary_section.declare_field(name="EndDate", tags=["Date fin", "Fin de la garantie"])
 
     def identity_section_declare_fields(self):
         """
