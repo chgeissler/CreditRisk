@@ -15,6 +15,7 @@ class CreditCollector(object):
     def __init__(self,
                  docpath: str):
         self._docpath = docpath
+        self._document_table = pd.DataFrame()
         self._company_table = pd.DataFrame()
         self._financials_table = pd.DataFrame()
         self._scoring_table = pd.DataFrame()
@@ -61,6 +62,7 @@ class CreditCollector(object):
         # 4: all
         # please write a function that extract a given bit from a number
         # and returns it as a boolean
+        doc_collector = cd.CreditDocumentCollector(self._docpath)
         nfiles = max(1, min(len(files), iend - istart))
         for ifile, file in enumerate(files):
             if doclist or istart <= ifile <= iend:
@@ -68,6 +70,7 @@ class CreditCollector(object):
                     print(f"Collecting document {ifile}/{nfiles}: {file}")
                 docu = cd.CreditDocument(path=self._docpath, name=file)
                 docu.locate_sections()
+                docu.insert(self._document_table)
                 a_comp = None
                 if b_company:
                     a_comp = cp.Company()
@@ -89,6 +92,8 @@ class CreditCollector(object):
                     a_req.insert(self._credit_request_table)
                     if a_req.is_parsed:
                         self._stats_table.loc["Requests", "Nb_parsed"] += 1
+
+        # self._stats_table.loc["Documents", "Nb_unknown_sections"] = docu.nb_sections_unlocated()
         self._stats_table.loc["Companies", "%_parsed"] = float(self._stats_table.loc["Companies", "Nb_parsed"]
                                                                / nfiles)
         self._stats_table.loc["Companies", "%_parsed"] = float(self._stats_table.loc["Requests", "Nb_parsed"]
@@ -101,6 +106,7 @@ class CreditCollector(object):
         :param name: name
         :return:
         """
+        self._document_table.to_csv(os.path.join(path, f"{name}_documents.csv"))
         self._company_table.to_csv(os.path.join(path, f"{name}_companies.csv"))
         self._credit_request_table.to_csv(os.path.join(path, f"{name}_credit_requests.csv"))
         pass

@@ -110,13 +110,16 @@ class DocumentWithSections(object):
         :param tag: str, string to find
         :param page_number: int, page number to search in
         :param space_sensitive: bool; if false, will look for a match up to random spaces
-        :return tuple of [matching tag, page number, position] if found, None otherwise
+        :return tuple of [matching tag, page number, position in page, line, position in line] if found,
+                None otherwise
         """
         # extract full text from page
         text = self.get_page_text(page_number)
         # normalize text
         ntext = tu.normalize(text)
         # get tag position in normalized text
+        # TODO remplacer par un regex, la recherche est encore sensible aux espaces intempestifs
+        # cela ne fonctionne pas s'il y a trop d'espaces dans le texte réel
         tag_position = ntext.find(tu.normalize(tag))
         iline = -1
         tag_position_in_line = -1
@@ -145,7 +148,10 @@ class DocumentWithSections(object):
         :param min_line:    the first line to look for the tag in
         :param max_line:    the last line to look for the tag in
         :param tag: str, string to find
-        :return tuple of (tag, number of first page where tag is found, tag position) if found, None otherwise
+        :return tuple of (tag,
+                          index of first page where tag is found,
+                          tag position in page,
+                          line, position in line) if found, None otherwise
 
         """
         res = (tag, -1, -1, -1, -1)
@@ -164,6 +170,20 @@ class DocumentWithSections(object):
         """
         for section in self.sections:
             section.locate_section_in_document(self)
+
+    def nb_sections_located(self):
+        """
+        Get number of sections located in document
+        :return: int, number of sections located
+        """
+        return len([s for s in self.sections if s.is_located])
+
+    def nb_sections_unlocated(self):
+        """
+        Get number of sections unlocated in document
+        :return: int, number of sections unlocated
+        """
+        return len([s for s in self.sections if not s.is_located])
 
     def get_full_text(self,
                       start_page: int,
@@ -190,6 +210,18 @@ class DocumentWithSections(object):
                 else:
                     text += page_text
         return text
+
+    def insert(self, table: pd.DataFrame):
+        """
+        Insert document features into a table
+        :param table:
+        :return: modifies table in place
+        """
+        doc_idx = self._name
+        if doc_idx == "":
+            return table
+        table.loc[doc_idx, "NbPages"] = self.nb_pages
+        table.loc[doc_idx, "NbSections"] = self.nb_sections_located()
 
 
 class DocumentCollector(object):
@@ -221,6 +253,8 @@ class DocumentCollector(object):
                 self._documents.loc[file, "Size"] = os.path.getsize(fullpath)
                 # get the number of pages
                 self._documents.loc[file, "Nb pages"] = len(doc.pypdf_reader.pages)
+                # get the number of located sections
+                self._documents.loc[file, "Nb sections"] = doc.nb_sections_located()
         pass
 
     def write_doc_stats(self, name: str):
@@ -251,6 +285,11 @@ class DocumentSection(object):
         self._start_tag_position_in_line = -1
         self._fields = {}
         self._field_tags = []
+        self._is_located = False
+
+    @property
+    def is_located(self):
+        return self._is_located
 
     @property
     def full_text(self):
@@ -345,7 +384,8 @@ class DocumentSection(object):
                  self._end_page,
                  self._end_tag_position, _, _) = end_tag_tuple
                 break
-        pass
+        if self._start_page < 0:
+            self._is_located = False
 
     def get_full_section_text(self):
         """

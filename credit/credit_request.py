@@ -133,8 +133,6 @@ class CreditRequest(object):
         if type(self._start_date) == datetime.date and type(self._end_date) == datetime.date:
             self._duration = (self._end_date - self._start_date).days / 365.25
 
-
-
     def insert(self, table: pd.DataFrame):
         """
         Insert credit request into credit request table

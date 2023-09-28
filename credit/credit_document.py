@@ -1,5 +1,6 @@
 import os
 from . import document as doc
+import pandas as pd
 
 
 class CreditDocument(doc.DocumentWithSections):
@@ -64,13 +65,13 @@ class CreditDocument(doc.DocumentWithSections):
         Declare fields in Summary section
         :return:
         """
-        self._summary_section.declare_field(name="RequestedAmount", tags=["demandee - duree",
-                                                                          "demandee",
-                                                                          "demande",
+        self._summary_section.declare_field(name="RequestedAmount", tags=["garantie demandee - duree",
+                                                                          "garantie demandee",
+                                                                          "encours demande",
                                                                           "pedida"])
-        self._summary_section.declare_field(name="GrantedAmount", tags=["accordee - duree",
-                                                                        "accordee",
-                                                                        "accorde",
+        self._summary_section.declare_field(name="GrantedAmount", tags=["garantie accordee - duree",
+                                                                        "garantie accordee",
+                                                                        "encours accorde",
                                                                         "accordada"])
         self._summary_section.declare_field(name="RequestDate", tags=["Date"])
         self._summary_section.declare_field(name="StartDate", tags=["Date debut", "Debut de la garantie"])
@@ -89,7 +90,7 @@ class CreditDocument(doc.DocumentWithSections):
         self._identity_section.declare_field(name="IndustryCode", tags=["Code APE"])
         self._identity_section.declare_field(name="ZipCode", tags=["Code postal"])
         self._identity_section.declare_field(name="Address", tags=["Adresse"])
-        self._identity_section.declare_field(name="City", tags=["Ville"])
+        self._identity_section.declare_field(name="City", tags=["CP, Ville", "Ville"])
         self._identity_section.declare_field(name="BankActivity", tags=["Activité bancaire"])
         self._identity_section.declare_field(name="Capital", tags=["Capital social", "Capital"])
         self._identity_section.declare_field(name="LegalForm", tags=["Forme juridique"])
@@ -146,47 +147,19 @@ class CreditDocument(doc.DocumentWithSections):
     def set_language(self, language: str):
         self._language = language
 
-
-    #
-    # def get_requested_amount(self) -> str:
-    #     """
-    #     Get requested amount from section
-    #     :return: float, requested amount
-    #     """
-    #     amount_str = ""
-    #     iline, line, match, rightbit = self.summary_section.get_tag_candidates_lines(["demandee - duree",
-    #                                                                                   "demandee",
-    #                                                                                   "demande",
-    #                                                                                   "pedida"])
-    #     if iline >= 0:
-    #         amount_str = rightbit
-    #     return amount_str
-    #
-    # def get_granted_amount(self) -> str:
-    #     """
-    #     Get requested amount from section
-    #     :return: float, requested amount
-    #     """
-    #     amount_str = ""
-    #     iline, line, match, rightbit = self.summary_section.get_tag_candidates_lines(["accordee - duree",
-    #                                                                                   "accordee",
-    #                                                                                   "accorde",
-    #                                                                                   "accordada"])
-    #     if iline >= 0:
-    #         amount_str = rightbit
-    #     return amount_str
-    #
-    # def get_company_name(self) -> str:
-    #     """
-    #     Get company name from section
-    #     :return: str, company name
-    #     """
-    #     name_str = ""
-    #     iline, line, match, rightbit = self.identity_section.get_tag_candidates_lines(["Nom",
-    #                                                                                    "Raison sociale"])
-    #     if iline >= 0:
-    #         name_str = rightbit
-    #     return name_str
+    def insert(self, table: pd.DataFrame):
+        """
+        Insert document features into a table
+        :param table:
+        :return: modifies table in place
+        """
+        doc_idx = self._name
+        if doc_idx == "":
+            return table
+        table.loc[doc_idx, "Language"] = self.language
+        table.loc[doc_idx, "NbPages"] = self.nb_pages
+        table.loc[doc_idx, "NbSections"] = len(self.sections)
+        table.loc[doc_idx, "NbMissingSections"] = self.nb_sections_unlocated()
 
 
 class CreditDocumentCollector(doc.DocumentCollector):
@@ -215,6 +188,7 @@ class CreditDocumentCollector(doc.DocumentCollector):
                 doct.locate_sections()
                 self._documents.loc[file, "Nb pages"] = doct.nb_pages
                 self._documents.loc[file, "Nb sections"] = len(doct.sections)
+                self._documents.loc[ifile, "Nb locatable sections"] = doct.nb_sections_located()
         pass
 
     def write_doc_stats(self, name: str):
