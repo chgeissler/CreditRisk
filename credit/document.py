@@ -89,13 +89,16 @@ class DocumentWithSections(object):
         tag_str = ""
         section: DocumentSection = self._sections.get(section_name, None)
         if section is not None:
-            if field_name in section.fields.keys():
-                candidate_tags = section.fields.get(field_name, None)
-                if candidate_tags is not None:
-                    iline, line, match, field = section.get_tag_candidates_lines(tags=candidate_tags,
-                                                                                 ending_tags=section.field_tags)
-                    if iline >= 0:
-                        tag_str = field
+            if section.is_located:
+                if field_name in section.fields.keys():
+                    candidate_tags = section.fields.get(field_name, None)
+                    if candidate_tags is not None:
+                        iline, line, match, field = section.get_tag_candidates_lines(tags=candidate_tags,
+                                                                                     ending_tags=section.field_tags)
+                        if iline >= 0:
+                            tag_str = field
+            else:
+                tag_str = ""
         return tag_str
 
     def find_tag_in_page(self,
@@ -121,6 +124,7 @@ class DocumentWithSections(object):
         # TODO remplacer par un regex, la recherche est encore sensible aux espaces intempestifs
         # cela ne fonctionne pas s'il y a trop d'espaces dans le texte réel
         tag_position = ntext.find(tu.normalize(tag))
+        tag_position = tu.compactify(ntext).find(tu.compactify(tu.normalize(tag)))
         iline = -1
         tag_position_in_line = -1
         if tag_position >= 0:
@@ -132,6 +136,8 @@ class DocumentWithSections(object):
                 if tu.normalize(tag) in nline:
                     tag_position_in_line, _ = tu.search_for_tag(tag, nline, space_sensitive=space_sensitive)
                     return tag, page_number, tag_position, iline, tag_position_in_line
+        else:
+            pass
         return tag, page_number, tag_position, iline, tag_position_in_line
 
     def find_tag_in_document(self,

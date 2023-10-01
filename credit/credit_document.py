@@ -11,7 +11,8 @@ class CreditDocument(doc.DocumentWithSections):
         super().__init__(path=path, name=name)
         self._language = ""
         self._summary_section = doc.DocumentSection(self,
-                                                    starttaglist=["Etude", "Etude client", "Siren"],
+                                                    starttaglist=["Etude client", "Etude garantie",
+                                                                  "Etude", "Business report"],
                                                     endtaglist=["Identité"])
         self.summary_section_declare_fields()
 
@@ -188,7 +189,8 @@ class CreditDocumentCollector(doc.DocumentCollector):
                 doct.locate_sections()
                 self._documents.loc[file, "Nb pages"] = doct.nb_pages
                 self._documents.loc[file, "Nb sections"] = len(doct.sections)
-                self._documents.loc[ifile, "Nb locatable sections"] = doct.nb_sections_located()
+                self._documents.loc[ifile, "Nb located sections"] = doct.nb_sections_located()
+                self._documents.loc[ifile, "Nb missing sections"] = doct.nb_sections_unlocated()
         pass
 
     def write_doc_stats(self, name: str):

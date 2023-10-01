@@ -15,7 +15,7 @@ if __name__ == "__main__":
     outfilename = "collect_test_2"
     if not debug_mode:
         collector = cc.CreditCollector(data_path)
-        collector.collect_objects(verbose=True, istart=0, iend=10, types_to_collect=3)
+        collector.collect_objects(verbose=True, istart=0, iend=50, types_to_collect=3)
         collector.write_objects(out_path, outfilename)
         collector.write_stats(out_path)
     else:
